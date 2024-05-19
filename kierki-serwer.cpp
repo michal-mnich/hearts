@@ -1,4 +1,5 @@
 #include "arg_parser.hpp"
+#include "server.hpp"
 #include <iostream>
 
 namespace po = boost::program_options;
@@ -10,9 +11,8 @@ int main(int argc, char** argv) {
     }
     ServerConfig config = parser.getConfig();
 
-    std::cout << "Port: " << config.port << '\n';
-    std::cout << "File: " << config.file << '\n';
-    std::cout << "Timeout: " << config.timeout << '\n';
+    Server server(config.port);
+    server.start();
 
     return 0;
 }
