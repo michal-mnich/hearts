@@ -1,5 +1,6 @@
 #include "arg_parser.hpp"
 #include <arpa/inet.h>
+#include <filesystem>
 #include <iostream>
 
 ArgumentParser::ArgumentParser(int argc, char** argv)
@@ -27,7 +28,7 @@ bool ArgumentParser::tryParse() {
         return false;
     }
     catch (...) {
-        std::cerr << "ERROR: Unknown\n";
+        std::cerr << "ERROR: unknown\n";
         return false;
     }
 }
@@ -54,17 +55,33 @@ void ServerArgumentParser::parse() {
     po::store(parsed, vm);
     po::notify(vm);
 
-    if (!vm.count("file"))
-        throw po::error("File parameter (-f <file>) is mandatory.");
+    std::vector<std::string> unrecognized =
+        po::collect_unrecognized(parsed.options, po::include_positional);
 
-    if (vm.count("port"))
-        config.port = vm["port"].as<std::vector<int>>().back();
+    if (!unrecognized.empty())
+        throw po::error("unrecognized option '" + unrecognized.front() + "'");
+
+    if (!vm.count("file"))
+        throw po::error("file parameter (-f <file>) is mandatory");
+
+    if (vm.count("port")) {
+        auto port = vm["port"].as<std::vector<int>>().back();
+        if (port != 0 && (port < 1024 || port > 65535))
+            throw po::error("port must be in the range 1024-65535 or 0");
+        config.port = port;
+    }
     else config.port = 0;
 
-    config.file = vm["file"].as<std::vector<std::string>>().back();
+    auto file = vm["file"].as<std::vector<std::string>>().back();
+    if (!std::filesystem::exists(file))
+        throw po::error("file '" + file + "' does not exist");
+    config.file = file;
 
-    if (vm.count("timeout"))
-        config.timeout = vm["timeout"].as<std::vector<int>>().back();
+    if (vm.count("timeout")) {
+        auto timeout = vm["timeout"].as<std::vector<int>>().back();
+        if (timeout < 1) throw po::error("timeout must be positive");
+        config.timeout = timeout;
+    }
     else config.timeout = 5;
 }
 
@@ -81,7 +98,7 @@ void ClientArgumentParser::parse() {
     // clang-format off
     opts.add_options()
         ("host,h", po::value<std::vector<std::string>>())
-        ("port,p", po::value<std::vector<uint16_t>>());
+        ("port,p", po::value<std::vector<int>>());
     // clang-format on
 
     po::variables_map vm;
@@ -96,34 +113,28 @@ void ClientArgumentParser::parse() {
     std::string seat;
     bool a = false;
     for (const auto& opt : unrecognized) {
-        if (opt == "-4" || opt == "-6") {
-            ipv = opt.substr(1);
-        }
-        else if (opt == "-N" || opt == "-W" || opt == "-E" || opt == "-S") {
+        if (opt == "-4" || opt == "-6") ipv = opt.substr(1);
+        else if (opt == "-N" || opt == "-W" || opt == "-E" || opt == "-S")
             seat = opt.substr(1);
-        }
-        else if (opt == "-a") {
-            a = true;
-        }
-        else {
-            throw po::error("Unrecognized option: " + opt);
-        }
+        else if (opt == "-a") a = true;
+        else throw po::error("unrecognized option '" + opt + "'");
     }
 
-    if (!vm.count("host")) {
-        throw po::error("Host parameter (-h <port>) is mandatory.");
-    }
+    if (!vm.count("host"))
+        throw po::error("host parameter (-h <port>) is mandatory");
 
-    if (!vm.count("port")) {
-        throw po::error("Port parameter (-p <port>) is mandatory.");
-    }
+    if (!vm.count("port"))
+        throw po::error("port parameter (-p <port>) is mandatory");
 
-    if (seat.empty()) {
-        throw po::error("Seat parameter (-N | -E | -S | -W) is mandatory.");
-    }
+    if (seat.empty())
+        throw po::error("seat parameter (-N | -E | -S | -W) is mandatory");
 
     config.host = vm["host"].as<std::vector<std::string>>().back();
-    config.port = vm["port"].as<std::vector<uint16_t>>().back();
+
+    auto port = vm["port"].as<std::vector<int>>().back();
+    if (port < 1024 || port > 65535)
+        throw po::error("port must be in the range 1024-65535");
+    config.port = port;
 
     if (ipv == "4") config.domain = AF_INET;
     else if (ipv == "6") config.domain = AF_INET6;

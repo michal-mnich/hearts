@@ -8,7 +8,7 @@ namespace po = boost::program_options;
 struct ServerConfig {
     uint16_t port;
     std::string file;
-    int timeout;
+    uint32_t timeout;
 };
 
 struct ClientConfig {
