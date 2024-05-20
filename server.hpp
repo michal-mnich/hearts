@@ -1,14 +1,11 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include <mutex>
-#include <condition_variable>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <thread>
-#include <unistd.h>
-#include <unordered_set>
 #include "network.hpp"
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+#include <unordered_set>
 
 #define QUEUE_SIZE 4
 

@@ -1,7 +1,6 @@
 #include "server.hpp"
 #include "error.hpp"
 #include "network.hpp"
-#include <cstring>
 #include <iostream>
 #include <poll.h>
 
@@ -64,9 +63,10 @@ void Server::acceptThread() {
     fds[1].events = POLLIN;
 
     while (true) {
-        int ret = poll(fds, 2, -1);
-        if (ret < 0) throw new NetworkError("poll");
+        if (poll(fds, 2, -1) < 0) throw new NetworkError("poll");
+
         std::cout << "Poll returned\n";
+
         if (game_over.load()) {
             std::cout << "Game over accept\n";
             break;

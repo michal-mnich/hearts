@@ -2,11 +2,8 @@
 #define NETWORK_H
 
 #include <arpa/inet.h>
-#include <cstring>
 #include <netdb.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <thread>
+#include <string>
 #include <unistd.h>
 
 std::string getPeerAddress(int sock_fd);
