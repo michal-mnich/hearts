@@ -2,6 +2,7 @@
 #define SERVER_H
 
 #include <mutex>
+#include <condition_variable>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <thread>
@@ -25,8 +26,9 @@ class Server {
     std::thread accept_thread;
     std::thread game_thread;
 
-    std::atomic<int> active_clients;
-    std::mutex thread_mutex;
+    int active_clients;
+    std::mutex mtx;
+    std::condition_variable active_clients_cv;
 
     std::atomic<bool> game_over;
 

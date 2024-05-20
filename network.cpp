@@ -151,9 +151,15 @@ std::string getLocalAddress(int sock_fd) {
 
 Networker::Networker(uint16_t port) : sock_fd(-1), port(port) {}
 
-void Networker::closeSocket() {
+void closeSocket(int sock_fd) {
     if (sock_fd >= 0) {
         if (close(sock_fd) < 0) throw NetworkError("close");
+    }
+}
+
+void shutdownSocket(int sock_fd) {
+    if (sock_fd >= 0) {
+        if (shutdown(sock_fd, SHUT_RDWR) < 0) throw NetworkError("shutdown");
     }
 }
 

@@ -31,19 +31,28 @@ void Server::start() {
     game_thread.join();
 
     std::cout << "Game over, waiting for clients to disconnect...\n";
-    active_clients.wait(0);
+
+    std::unique_lock<std::mutex> lock(mtx);
+    active_clients_cv.wait(lock, [this] { return active_clients == 0; });
+
     std::cout << "All clients disconnected, server shutting down\n";
+
+    closeSocket(ipv4_networker.getSocket());
+    closeSocket(ipv6_networker.getSocket());
+    for (int client_socket : client_sockets) {
+        closeSocket(client_socket);
+    }
 }
 
 void Server::handleGameOver() {
     game_over.store(true);
 
-    ipv4_networker.closeSocket();
-    ipv6_networker.closeSocket();
+    shutdownSocket(ipv4_networker.getSocket());
+    shutdownSocket(ipv6_networker.getSocket());
 
-    std::lock_guard<std::mutex> lock(thread_mutex);
+    std::lock_guard<std::mutex> lock(mtx);
     for (int client_socket : client_sockets) {
-        close(client_socket);
+        shutdownSocket(client_socket);
     }
 }
 
@@ -54,10 +63,14 @@ void Server::acceptThread() {
     fds[1].fd = ipv6_networker.getSocket();
     fds[1].events = POLLIN;
 
-    while (!game_over.load()) {
+    while (true) {
         int ret = poll(fds, 2, -1);
         if (ret < 0) throw new NetworkError("poll");
         std::cout << "Poll returned\n";
+        if (game_over.load()) {
+            std::cout << "Game over accept\n";
+            break;
+        }
 
         if (fds[0].revents & POLLIN) {
             struct sockaddr_in client_address;
@@ -88,29 +101,40 @@ void Server::acceptThread() {
 }
 
 void Server::clientThread(int client_socket) {
-    active_clients.fetch_add(1);
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        active_clients++;
+    }
 
     // Handle client communication
     char buffer[1024] = {0};
-    while (!game_over.load()) {
+    while (true) {
         int bytes_read = read(client_socket, buffer, sizeof(buffer));
+        if (game_over.load()) {
+            std::cout << "Game over client\n";
+            break;
+        }
         if (bytes_read <= 0) {
             break;
         }
         // Process client data
     }
 
-    if (active_clients.fetch_sub(1) == 1) active_clients.notify_one();
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        active_clients--;
+        if (active_clients == 0) active_clients_cv.notify_one();
+    }
 }
 
 void Server::gameThread() {
-    sleep(60);
+    sleep(5);
     std::cout << "game over\n";
     handleGameOver();
 }
 
 void Server::handleNewClient(int client_socket) {
-    std::lock_guard<std::mutex> lock(thread_mutex);
+    std::lock_guard<std::mutex> lock(mtx);
     if (client_sockets.size() == 4) {
         // game is full
         std::cerr << "Game is full, rejecting client\n";

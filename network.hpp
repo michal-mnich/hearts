@@ -12,6 +12,9 @@
 std::string getPeerAddress(int sock_fd);
 std::string getLocalAddress(int sock_fd);
 
+void closeSocket(int sock_fd);
+void shutdownSocket(int sock_fd);
+
 class Networker {
   protected:
     int sock_fd;
@@ -19,7 +22,6 @@ class Networker {
 
   public:
     Networker(uint16_t port);
-    void closeSocket();
     int getSocket();
 };
 
