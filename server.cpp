@@ -63,40 +63,19 @@ void Server::acceptThread() {
     fds[1].events = POLLIN;
 
     while (true) {
-        if (poll(fds, 2, -1) < 0) throw new NetworkError("poll");
-
-        std::cout << "Poll returned\n";
-
-        if (game_over.load()) {
-            std::cout << "Game over accept\n";
-            break;
-        }
-
+        if (poll(fds, 2, -1) < 0) throw new SystemError("poll");
+        if (game_over.load()) break;
         if (fds[0].revents & POLLIN) {
-            struct sockaddr_in client_address;
-            socklen_t client_address_len = sizeof(client_address);
-            int client_socket = accept(fds[0].fd,
-                                       (struct sockaddr*)&client_address,
-                                       &client_address_len);
-            if (client_socket <= 0) {
-                std::cerr << "Failed to accept client IPv4 connection\n";
-                break;
-            }
+            int client_socket = accept(fds[0].fd, nullptr, nullptr);
+            if (client_socket < 0) throw new SystemError("accept IPv4");
             handleNewClient(client_socket);
         }
-
-        if (fds[1].revents & POLLIN) {
-            struct sockaddr_in6 client_address;
-            socklen_t client_address_len = sizeof(client_address);
-            int client_socket = accept(fds[1].fd,
-                                       (struct sockaddr*)&client_address,
-                                       &client_address_len);
-            if (client_socket <= 0) {
-                std::cerr << "Failed to accept client IPv6 connection\n";
-                break;
-            }
+        else if (fds[1].revents & POLLIN) {
+            int client_socket = accept(fds[1].fd, nullptr, nullptr);
+            if (client_socket < 0) throw new SystemError("accept IPv6");
             handleNewClient(client_socket);
         }
+        else throw new SystemError("poll revents");
     }
 }
 
@@ -129,7 +108,7 @@ void Server::clientThread(int client_socket) {
 
 void Server::gameThread() {
     sleep(5);
-    std::cout << "game over\n";
+    std::cout << "Initiating game over\n";
     handleGameOver();
 }
 
@@ -138,7 +117,7 @@ void Server::handleNewClient(int client_socket) {
     if (client_sockets.size() == 4) {
         // game is full
         std::cerr << "Game is full, rejecting client\n";
-        close(client_socket);
+        closeSocket(client_socket);
         return;
     }
     std::cout << "client " << getPeerAddress(client_socket) << " connected\n";

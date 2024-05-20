@@ -6,13 +6,18 @@
 #include <exception>
 #include <string>
 
-class NetworkError : public std::exception {
+class SystemError : public std::exception {
   private:
     std::string error;
 
   public:
-    NetworkError(const std::string& message)
-        : error("ERROR: " + message + ": " + std::strerror(errno)) {}
+    SystemError(const std::string& message) {
+        error = "ERROR: " + message;
+        if (errno) {
+            error = error + " (" + std::to_string(errno) + "; " +
+                    std::strerror(errno) + ")";
+        }
+    }
 
     const char* what() const noexcept override { return error.c_str(); }
 };
