@@ -12,29 +12,27 @@ void Server::start() {
     ipv4_networker.createSocket();
     ipv4_networker.bindSocket();
     ipv4_networker.listenSocket();
-    std::cout << "IPv4 server " << getLocalAddress(ipv4_networker.getSocket())
-              << "\n";
+    debug("Server (local IPv4) " + getLocalAddress(ipv4_networker.getSocket()));
 
     ipv6_networker.createSocket();
     ipv6_networker.bindSocket();
     ipv6_networker.listenSocket();
-    std::cout << "IPv6 server " << getLocalAddress(ipv6_networker.getSocket())
-              << "\n";
+    debug("Server (local IPv6) " + getLocalAddress(ipv6_networker.getSocket()));
 
     accept_thread = std::thread(&Server::acceptThread, this);
 
-    std::cout << "Starting game...\n";
+    debug("Starting game...");
     game_thread = std::thread(&Server::gameThread, this);
 
     accept_thread.join();
     game_thread.join();
 
-    std::cout << "Game over, waiting for clients to disconnect...\n";
+    debug("Game over, waiting for clients to disconnect...");
 
     std::unique_lock<std::mutex> lock(mtx);
     active_clients_cv.wait(lock, [this] { return active_clients == 0; });
 
-    std::cout << "All clients disconnected, server shutting down\n";
+    debug("All clients disconnected, server shutting down");
 
     closeSocket(ipv4_networker.getSocket());
     closeSocket(ipv6_networker.getSocket());
@@ -90,7 +88,7 @@ void Server::clientThread(int client_socket) {
     while (true) {
         int bytes_read = read(client_socket, buffer, sizeof(buffer));
         if (game_over.load()) {
-            std::cout << "Game over client\n";
+            debug("Game over, exiting client thread");
             break;
         }
         if (bytes_read <= 0) {
@@ -107,8 +105,8 @@ void Server::clientThread(int client_socket) {
 }
 
 void Server::gameThread() {
-    sleep(5);
-    std::cout << "Initiating game over\n";
+    sleep(20);
+    debug("Game over");
     handleGameOver();
 }
 
@@ -116,11 +114,11 @@ void Server::handleNewClient(int client_socket) {
     std::lock_guard<std::mutex> lock(mtx);
     if (client_sockets.size() == 4) {
         // game is full
-        std::cerr << "Game is full, rejecting client\n";
+        debug("Game is full, rejecting client");
         closeSocket(client_socket);
         return;
     }
-    std::cout << "client " << getPeerAddress(client_socket) << " connected\n";
+    debug("Client (foreign) " + getPeerAddress(client_socket));
     client_sockets.insert(client_socket);
     std::thread(&Server::clientThread, this, client_socket).detach();
 }

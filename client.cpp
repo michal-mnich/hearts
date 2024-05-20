@@ -1,5 +1,6 @@
 #include "client.hpp"
 #include "network.hpp"
+#include "error.hpp"
 #include <iostream>
 #include <signal.h>
 
@@ -11,14 +12,14 @@ void Client::connectToGame() {
 
     networker.connectToServer();
 
-    std::cout << "server " << getPeerAddress(networker.getSocket()) << '\n';
-    std::cout << "client " << getLocalAddress(networker.getSocket()) << '\n';
+    debug("Client (local) " + getLocalAddress(networker.getSocket()));
+    debug("Server (foreign) " + getPeerAddress(networker.getSocket()));
 
     while (write(networker.getSocket(), "hello", 5) > 0) {
-        std::cout << "sent message to server" << std::endl;
+        debug("Sent message to server");
         sleep(1);
     }
 
-    std::cout << "Connection closed." << std::endl;
+    debug("Server disconnected, shutting down client...");
     closeSocket(networker.getSocket());
 }

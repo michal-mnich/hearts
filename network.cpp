@@ -1,5 +1,6 @@
 #include "network.hpp"
 #include "error.hpp"
+#include <cstring>
 
 #define QUEUE_SIZE 4
 
