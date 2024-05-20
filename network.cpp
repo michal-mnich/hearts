@@ -113,7 +113,7 @@ std::string getPeerAddress(int sock_fd) {
     std::string peerIP, peerPort;
 
     if (getpeername(sock_fd, (struct sockaddr*)&peerAddr, &addrLen) < 0)
-        throw new SystemError("getpeername");
+        throw SystemError("getpeername");
 
     // Determine address family and convert IP address to string
     if (peerAddr.ss_family == AF_INET) {
@@ -128,7 +128,7 @@ std::string getPeerAddress(int sock_fd) {
         peerIP = "[" + std::string(ipStr) + "]";
         peerPort = std::to_string(ntohs(s->sin6_port));
     }
-    else throw new SystemError("unknown address family");
+    else throw SystemError("unknown address family");
 
     return peerIP + ":" + peerPort;
 }
@@ -140,7 +140,7 @@ std::string getLocalAddress(int sock_fd) {
     std::string localIP, localPort;
 
     if (getsockname(sock_fd, (struct sockaddr*)&localAddr, &addrLen) < 0)
-        throw new SystemError("getsockname");
+        throw SystemError("getsockname");
 
     // Determine address family and convert IP address to string
     if (localAddr.ss_family == AF_INET) {
@@ -155,7 +155,7 @@ std::string getLocalAddress(int sock_fd) {
         localIP = "[" + std::string(ipStr) + "]";
         localPort = std::to_string(ntohs(s->sin6_port));
     }
-    else throw new SystemError("unknown address family");
+    else throw SystemError("unknown address family");
 
     return localIP + ":" + localPort;
 }

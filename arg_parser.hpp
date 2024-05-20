@@ -23,18 +23,18 @@ class ArgumentParser {
 protected:
     int argc;
     char** argv;
-    virtual void parse() = 0;
+    virtual void _parse() = 0;
     auto getParser(po::options_description& opts);
 
 public:
     ArgumentParser(int argc, char** argv);
-    bool tryParse();
+    void parse();
 };
 
 class ServerArgumentParser : public ArgumentParser {
 private:
     ServerConfig config;
-    void parse() override;
+    void _parse() override;
 
 public:
     ServerArgumentParser(int argc, char** argv);
@@ -44,7 +44,7 @@ public:
 class ClientArgumentParser : public ArgumentParser {
 private:
     ClientConfig config;
-    void parse() override;
+    void _parse() override;
 
 public:
     ClientArgumentParser(int argc, char** argv);

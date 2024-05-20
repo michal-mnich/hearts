@@ -1,4 +1,5 @@
 #include "arg_parser.hpp"
+#include "error.hpp"
 #include <arpa/inet.h>
 #include <filesystem>
 #include <iostream>
@@ -14,22 +15,12 @@ auto ArgumentParser::getParser(po::options_description& opts) {
                po::command_line_style::short_allow_next);
 }
 
-bool ArgumentParser::tryParse() {
+void ArgumentParser::parse() {
     try {
-        parse();
-        return true;
+        _parse();
     }
-    catch (const po::error& ex) {
-        std::cerr << "ERROR: " << ex.what() << "\n";
-        return false;
-    }
-    catch (const std::exception& ex) {
-        std::cerr << "EXCEPTION: " << ex.what() << "\n";
-        return false;
-    }
-    catch (...) {
-        std::cerr << "ERROR: unknown\n";
-        return false;
+    catch (const po::error& e) {
+        throw SystemError(e.what());
     }
 }
 
@@ -40,7 +31,7 @@ ServerConfig ServerArgumentParser::getConfig() {
     return config;
 }
 
-void ServerArgumentParser::parse() {
+void ServerArgumentParser::_parse() {
     po::options_description opts;
 
     // clang-format off
@@ -92,7 +83,7 @@ ClientConfig ClientArgumentParser::getConfig() {
     return config;
 }
 
-void ClientArgumentParser::parse() {
+void ClientArgumentParser::_parse() {
     po::options_description opts;
 
     // clang-format off

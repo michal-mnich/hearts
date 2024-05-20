@@ -17,21 +17,24 @@ std::string domainToString(int domain) {
 }
 
 int main(int argc, char** argv) {
-    ClientArgumentParser parser(argc, argv);
-    if (!parser.tryParse()) return 1;
+    try {
+        ClientArgumentParser parser(argc, argv);
+        parser.parse();
+        ClientConfig config = parser.getConfig();
 
-    ClientConfig config = parser.getConfig();
+        debug("Host: " + config.host);
+        debug("Port: " + std::to_string(config.port));
+        debug("IP Version: " + domainToString(config.domain));
+        debug("Seat: " + config.seat);
+        debug("Auto Player: " + std::string(config.auto_player ? "Yes" : "No"));
 
-    debug("Host: " + config.host);
-    debug("Port: " + std::to_string(config.port));
-    debug("IP Version: " + domainToString(config.domain));
-    debug("Seat: " + config.seat);
-    debug("Auto Player: " + std::string(config.auto_player ? "Yes" : "No"));
+        Client client(config.host, config.port, config.domain);
+        client.connectToGame();
 
-    Client client(config.host, config.port, config.domain);
-    client.connectToGame();
-
-    // The rest of the client code goes here...
-
-    return 0;
+        return 0;
+    }
+    catch (const SystemError& e) {
+        std::cerr << e.what() << std::endl;
+        return 1;
+    }
 }
