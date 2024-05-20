@@ -5,11 +5,11 @@
 #include <string>
 
 class Client {
-  public:
+public:
     Client(const std::string& host, int port, int domain);
     void connectToGame();
 
-  private:
+private:
     ClientNetworker networker;
 };
 

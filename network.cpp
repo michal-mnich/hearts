@@ -62,8 +62,15 @@ ClientNetworker::ClientNetworker(std::string host, uint16_t port, int domain)
     : Networker(port), host(host), domain(domain) {}
 
 static bool validAddress(struct addrinfo* hints, struct addrinfo* res) {
-    return res != nullptr && res->ai_family == hints->ai_family &&
-           res->ai_socktype == hints->ai_socktype &&
+    if (res == nullptr) return false;
+    if (hints->ai_family == AF_INET && res->ai_family != AF_INET) return false;
+    if (hints->ai_family == AF_INET6 && res->ai_family != AF_INET6)
+        return false;
+    if (hints->ai_family == AF_UNSPEC && res->ai_family != AF_INET &&
+        res->ai_family != AF_INET6)
+        return false;
+
+    return res->ai_socktype == hints->ai_socktype &&
            res->ai_protocol == hints->ai_protocol;
 }
 

@@ -7,10 +7,10 @@
 void debug(const std::string& message);
 
 class SystemError : public std::exception {
-  private:
+private:
     std::string error;
 
-  public:
+public:
     SystemError(const std::string& message);
     const char* what() const noexcept override;
 };

@@ -1,36 +1,34 @@
 #include "arg_parser.hpp"
+#include "client.hpp"
 #include "error.hpp"
 #include <iostream>
-#include <arpa/inet.h>
-#include "client.hpp"
+
+std::string domainToString(int domain) {
+    switch (domain) {
+        case AF_INET:
+            return "IPv4";
+        case AF_INET6:
+            return "IPv6";
+        case AF_UNSPEC:
+            return "unspecified";
+        default:
+            return "unknown";
+    }
+}
 
 int main(int argc, char** argv) {
     ClientArgumentParser parser(argc, argv);
-    if (!parser.tryParse()) {
-        return 1;
-    }
+    if (!parser.tryParse()) return 1;
+
     ClientConfig config = parser.getConfig();
 
-    debug("Client configuration:");
     debug("Host: " + config.host);
     debug("Port: " + std::to_string(config.port));
-    debug("IPv4: " + std::string(config.use_ipv4 ? "Yes" : "No"));
-    debug("IPv6: " + std::string(config.use_ipv6 ? "Yes" : "No"));
-    debug("Seat: " + std::string(1, config.seat));
+    debug("IP Version: " + domainToString(config.domain));
+    debug("Seat: " + config.seat);
     debug("Auto Player: " + std::string(config.auto_player ? "Yes" : "No"));
 
-    int domain;
-    if (config.use_ipv4) {
-        domain = AF_INET;
-    }
-    else if (config.use_ipv6) {
-        domain = AF_INET6;
-    }
-    else {
-        domain = AF_UNSPEC;
-    }
-
-    Client client(config.host, config.port, domain);
+    Client client(config.host, config.port, config.domain);
     client.connectToGame();
 
     // The rest of the client code goes here...

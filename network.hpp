@@ -13,53 +13,53 @@ void closeSocket(int sock_fd);
 void shutdownSocket(int sock_fd);
 
 class Networker {
-  protected:
+protected:
     int sock_fd;
     uint16_t port;
 
-  public:
+public:
     Networker(uint16_t port);
     int getSocket();
 };
 
 class ServerNetworker : public Networker {
-  protected:
+protected:
     virtual void createSocket() = 0;
     virtual void bindSocket() = 0;
     int _createSocket(int domain);
     void _bindSocket(int sock_fd, struct sockaddr* addr, socklen_t addr_size);
 
-  public:
+public:
     ServerNetworker(uint16_t port);
     void listenSocket();
 };
 
 class IPv4ServerNetworker : public ServerNetworker {
-  private:
+private:
     struct sockaddr_in addr;
 
-  public:
+public:
     IPv4ServerNetworker(uint16_t port);
     void createSocket() override;
     void bindSocket() override;
 };
 
 class IPv6ServerNetworker : public ServerNetworker {
-  private:
+private:
     struct sockaddr_in6 addr;
 
-  public:
+public:
     IPv6ServerNetworker(uint16_t port);
     void createSocket() override;
     void bindSocket() override;
 };
 
 class ClientNetworker : public Networker {
-  private:
+private:
     std::string host;
     int domain;
 
-  public:
+public:
     ClientNetworker(std::string host, uint16_t port, int domain);
     void connectToServer();
 };

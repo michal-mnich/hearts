@@ -10,11 +10,11 @@
 #define QUEUE_SIZE 4
 
 class Server {
-  public:
+public:
     Server(int port);
     void start();
 
-  private:
+private:
     IPv4ServerNetworker ipv4_networker;
     IPv6ServerNetworker ipv6_networker;
 

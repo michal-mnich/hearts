@@ -1,4 +1,5 @@
 #include "arg_parser.hpp"
+#include <arpa/inet.h>
 #include <iostream>
 
 ArgumentParser::ArgumentParser(int argc, char** argv)
@@ -80,7 +81,7 @@ void ClientArgumentParser::parse() {
     // clang-format off
     opts.add_options()
         ("host,h", po::value<std::vector<std::string>>())
-        ("port,p", po::value<std::vector<int>>());
+        ("port,p", po::value<std::vector<uint16_t>>());
     // clang-format on
 
     po::variables_map vm;
@@ -121,10 +122,13 @@ void ClientArgumentParser::parse() {
         throw po::error("Seat parameter (-N | -E | -S | -W) is mandatory.");
     }
 
-    config.host        = vm["host"].as<std::vector<std::string>>().back();
-    config.port        = vm["port"].as<std::vector<int>>().back();
-    config.use_ipv4    = ipv == "4";
-    config.use_ipv6    = ipv == "6";
-    config.seat        = seat[0];
+    config.host = vm["host"].as<std::vector<std::string>>().back();
+    config.port = vm["port"].as<std::vector<uint16_t>>().back();
+
+    if (ipv == "4") config.domain = AF_INET;
+    else if (ipv == "6") config.domain = AF_INET6;
+    else config.domain = AF_UNSPEC;
+
+    config.seat = seat;
     config.auto_player = a;
 }

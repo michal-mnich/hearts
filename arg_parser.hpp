@@ -6,48 +6,47 @@
 namespace po = boost::program_options;
 
 struct ServerConfig {
-    int port;
+    uint16_t port;
     std::string file;
     int timeout;
 };
 
 struct ClientConfig {
     std::string host;
-    int port;
-    bool use_ipv4;
-    bool use_ipv6;
-    char seat;
+    uint16_t port;
+    int domain;
+    std::string seat;
     bool auto_player;
 };
 
 class ArgumentParser {
-  protected:
+protected:
     int argc;
     char** argv;
     virtual void parse() = 0;
     auto getParser(po::options_description& opts);
 
-  public:
+public:
     ArgumentParser(int argc, char** argv);
     bool tryParse();
 };
 
 class ServerArgumentParser : public ArgumentParser {
-  private:
+private:
     ServerConfig config;
     void parse() override;
 
-  public:
+public:
     ServerArgumentParser(int argc, char** argv);
     ServerConfig getConfig();
 };
 
 class ClientArgumentParser : public ArgumentParser {
-  private:
+private:
     ClientConfig config;
     void parse() override;
 
-  public:
+public:
     ClientArgumentParser(int argc, char** argv);
     ClientConfig getConfig();
 };
