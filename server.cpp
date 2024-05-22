@@ -62,18 +62,19 @@ void Server::acceptThread() {
 
     while (true) {
         if (poll(fds, 2, -1) < 0) throw new SystemError("poll");
-        if (game_over.load()) break;
-        if (fds[0].revents & POLLIN) {
-            int client_socket = accept(fds[0].fd, nullptr, nullptr);
-            if (client_socket < 0) throw new SystemError("accept IPv4");
-            handleNewClient(client_socket);
+        if (game_over.load()) {
+            debug("Game over, exiting accept thread");
+            break;
         }
-        else if (fds[1].revents & POLLIN) {
-            int client_socket = accept(fds[1].fd, nullptr, nullptr);
-            if (client_socket < 0) throw new SystemError("accept IPv6");
-            handleNewClient(client_socket);
+        for (auto fd : fds) {
+            if (fd.revents & POLLIN) {
+                int client_socket = accept(fd.fd, nullptr, nullptr);
+                if (client_socket < 0) throw new SystemError("accept");
+                handleNewClient(client_socket);
+            }
+            if (fd.revents & POLLHUP || fd.revents & POLLERR)
+                throw new SystemError("revents");
         }
-        else throw new SystemError("poll revents");
     }
 }
 
