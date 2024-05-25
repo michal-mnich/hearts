@@ -15,8 +15,7 @@ public:
     void start();
 
 private:
-    IPv4ServerNetworker ipv4_networker;
-    IPv6ServerNetworker ipv6_networker;
+    ServerNetworker networker;
 
     std::unordered_set<int> client_sockets;
 

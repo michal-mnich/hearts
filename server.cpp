@@ -5,19 +5,13 @@
 #include <poll.h>
 
 Server::Server(int port)
-    : ipv4_networker(port), ipv6_networker(port), active_clients(0),
-      game_over(false) {}
+    : networker(port), active_clients(0), game_over(false) {}
 
 void Server::start() {
-    ipv4_networker.createSocket();
-    ipv4_networker.bindSocket();
-    ipv4_networker.listenSocket();
-    debug("Server (local IPv4) " + getLocalAddress(ipv4_networker.getSocket()));
-
-    ipv6_networker.createSocket();
-    ipv6_networker.bindSocket();
-    ipv6_networker.listenSocket();
-    debug("Server (local IPv6) " + getLocalAddress(ipv6_networker.getSocket()));
+    networker.createSocket();
+    networker.bindSocket();
+    networker.listenSocket();
+    debug("Server (local IPv4) " + getLocalAddress(networker.getSocket()));
 
     accept_thread = std::thread(&Server::acceptThread, this);
 
@@ -34,8 +28,7 @@ void Server::start() {
 
     debug("All clients disconnected, server shutting down");
 
-    closeSocket(ipv4_networker.getSocket());
-    closeSocket(ipv6_networker.getSocket());
+    closeSocket(networker.getSocket());
     for (int client_socket : client_sockets) {
         closeSocket(client_socket);
     }
@@ -44,8 +37,7 @@ void Server::start() {
 void Server::handleGameOver() {
     game_over.store(true);
 
-    shutdownSocket(ipv4_networker.getSocket());
-    shutdownSocket(ipv6_networker.getSocket());
+    shutdownSocket(networker.getSocket());
 
     std::lock_guard<std::mutex> lock(mtx);
     for (int client_socket : client_sockets) {
@@ -54,27 +46,27 @@ void Server::handleGameOver() {
 }
 
 void Server::acceptThread() {
-    struct pollfd fds[2];
-    fds[0].fd = ipv4_networker.getSocket();
+    struct pollfd fds[1];
+    fds[0].fd = networker.getSocket();
     fds[0].events = POLLIN;
-    fds[1].fd = ipv6_networker.getSocket();
-    fds[1].events = POLLIN;
 
     while (true) {
-        if (poll(fds, 2, -1) < 0) throw new SystemError("poll");
+        if (poll(fds, 1, -1) < 0) throw new SystemError("poll");
+
         if (game_over.load()) {
             debug("Game over, exiting accept thread");
             break;
         }
-        for (auto fd : fds) {
-            if (fd.revents & POLLIN) {
-                int client_socket = accept(fd.fd, nullptr, nullptr);
-                if (client_socket < 0) throw new SystemError("accept");
-                handleNewClient(client_socket);
-            }
-            if (fd.revents & POLLHUP || fd.revents & POLLERR)
-                throw new SystemError("revents");
+
+        auto fd = fds[0];
+
+        if (fd.revents & POLLIN) {
+            int client_socket = accept(fd.fd, nullptr, nullptr);
+            if (client_socket < 0) throw new SystemError("accept");
+            handleNewClient(client_socket);
         }
+        if (fd.revents & POLLHUP || fd.revents & POLLERR)
+            throw new SystemError("revents");
     }
 }
 

@@ -23,35 +23,14 @@ public:
 };
 
 class ServerNetworker : public Networker {
-protected:
-    virtual void createSocket() = 0;
-    virtual void bindSocket() = 0;
-    int _createSocket(int domain);
-    void _bindSocket(int sock_fd, struct sockaddr* addr, socklen_t addr_size);
-
-public:
-    ServerNetworker(uint16_t port);
-    void listenSocket();
-};
-
-class IPv4ServerNetworker : public ServerNetworker {
-private:
-    struct sockaddr_in addr;
-
-public:
-    IPv4ServerNetworker(uint16_t port);
-    void createSocket() override;
-    void bindSocket() override;
-};
-
-class IPv6ServerNetworker : public ServerNetworker {
 private:
     struct sockaddr_in6 addr;
 
 public:
-    IPv6ServerNetworker(uint16_t port);
-    void createSocket() override;
-    void bindSocket() override;
+    ServerNetworker(uint16_t port);
+    void createSocket();
+    void bindSocket();
+    void listenSocket();
 };
 
 class ClientNetworker : public Networker {
