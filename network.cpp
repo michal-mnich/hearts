@@ -1,67 +1,134 @@
 #include "network.hpp"
 #include "error.hpp"
+#include "server.hpp"
 #include <cstring>
+#include <poll.h>
 
 #define QUEUE_SIZE 4
 
-ServerNetworker::ServerNetworker(uint16_t port) : Networker(port) {}
+static void _close(int fd) {
+    if (close(fd) < 0) throw SystemError("close");
+}
 
-int ServerNetworker::_createSocket(int domain) {
-    sock_fd = socket(domain, SOCK_STREAM, 0);
+static void _shutdown(int fd, int how) {
+    if (shutdown(fd, how) < 0) throw SystemError("shutdown");
+}
+
+static int _socket(int domain) {
+    int opt, optname;
+
+    int sock_fd = socket(domain, SOCK_STREAM, 0);
     if (sock_fd < 0) throw SystemError("socket");
-    int opt = 1;
-    int optname = SO_REUSEADDR | SO_REUSEPORT;
+
+    // Allow reuse of local addresses (no TIME_WAIT)
+    opt = 1;
+    optname = SO_REUSEADDR;
     if (setsockopt(sock_fd, SOL_SOCKET, optname, &opt, sizeof(opt)) < 0)
-        throw SystemError("setsockopt");
+        throw SystemError("setsockopt (SO_REUSEADDR)");
+
+    // Allow only IPv6 connections on an IPv6 socket
+    if (domain == AF_INET6) {
+        opt = 1;
+        optname = IPV6_V6ONLY;
+        if (setsockopt(sock_fd, IPPROTO_IPV6, optname, &opt, sizeof(opt)) < 0)
+            throw SystemError("setsockopt (IPV6_V6ONLY)");
+    }
+
     return sock_fd;
 }
 
-void ServerNetworker::_bindSocket(int sock_fd,
-                                  struct sockaddr* addr,
-                                  socklen_t addr_size) {
-    if (bind(sock_fd, addr, addr_size) < 0) throw SystemError("bind");
+static void _bind(int sock_fd, struct sockaddr* addr, socklen_t len) {
+    if (bind(sock_fd, addr, len) < 0) throw SystemError("bind");
 }
 
-void ServerNetworker::listenSocket() {
+static void _listen(int sock_fd) {
     if (listen(sock_fd, QUEUE_SIZE) < 0) throw SystemError("listen");
 }
 
-IPv4ServerNetworker::IPv4ServerNetworker(uint16_t port)
-    : ServerNetworker(port) {
-    std::memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = INADDR_ANY;
-    addr.sin_port = htons(port);
+static int _accept(int sock_fd) {
+    int client_socket = accept(sock_fd, nullptr, nullptr);
+    if (client_socket < 0) throw SystemError("accept");
+    return client_socket;
 }
 
-void IPv4ServerNetworker::createSocket() {
-    sock_fd = _createSocket(AF_INET);
+ServerNetworker::ServerNetworker(uint16_t port) : active_clients(0) {
+    ipv4_fd = _socket(AF_INET);
+    ipv6_fd = _socket(AF_INET6);
+
+    std::memset(&ipv4_addr, 0, sizeof(ipv4_addr));
+    std::memset(&ipv6_addr, 0, sizeof(ipv6_addr));
+
+    ipv4_addr.sin_family = AF_INET;
+    ipv4_addr.sin_addr.s_addr = INADDR_ANY;
+    ipv4_addr.sin_port = htons(port);
+
+    ipv6_addr.sin6_family = AF_INET6;
+    ipv6_addr.sin6_addr = in6addr_any;
+    ipv6_addr.sin6_port = htons(port);
+
+    _bind(ipv4_fd, (struct sockaddr*)&ipv4_addr, sizeof(ipv4_addr));
+    _bind(ipv6_fd, (struct sockaddr*)&ipv6_addr, sizeof(ipv6_addr));
+
+    _listen(ipv4_fd);
+    _listen(ipv6_fd);
+
+    debug("IPv4 server at: " + getLocalAddress(ipv4_fd));
+    debug("IPv6 server at: " + getLocalAddress(ipv6_fd));
 }
 
-void IPv4ServerNetworker::bindSocket() {
-    _bindSocket(sock_fd, (struct sockaddr*)&addr, sizeof(addr));
+void ServerNetworker::startAccepting(Server* server) {
+    struct pollfd fds[2];
+    fds[0].fd = ipv4_fd;
+    fds[0].events = POLLIN;
+    fds[1].fd = ipv6_fd;
+    fds[1].events = POLLIN;
+
+    while (true) {
+        if (poll(fds, 2, -1) < 0) return;
+        for (auto fd : fds) {
+            if (fd.revents & POLLIN) {
+                std::lock_guard<std::mutex> lock(mtx);
+                int client_fd = _accept(fd.fd);
+                if (client_fds.size() >= MAX_CLIENTS) {
+                    debug("Max clients reached, disconnecting new client");
+                    _close(client_fd);
+                }
+                else {
+                    debug(getLocalAddress(client_fd) +
+                          " accepted connection from " +
+                          getPeerAddress(client_fd));
+                    client_fds.insert(client_fd);
+                    std::thread(&Server::playerThread, server, client_fd)
+                        .detach();
+                }
+            }
+            else if (fd.revents & POLLHUP || fd.revents & POLLERR) return;
+        }
+    }
 }
 
-IPv6ServerNetworker::IPv6ServerNetworker(uint16_t port)
-    : ServerNetworker(port) {
-    std::memset(&addr, 0, sizeof(addr));
-    addr.sin6_family = AF_INET6;
-    addr.sin6_addr = in6addr_any;
-    addr.sin6_port = htons(port);
+void ServerNetworker::stopAccepting() {
+    debug("Shutting down server sockets...");
+    _shutdown(ipv4_fd, SHUT_RDWR);
+    _shutdown(ipv6_fd, SHUT_RDWR);
 }
 
-void IPv6ServerNetworker::createSocket() {
-    sock_fd = _createSocket(AF_INET6);
+void ServerNetworker::disconnectClients() {
+    debug("Disconnecting clients...");
+    std::lock_guard<std::mutex> lock(mtx);
+    for (int fd : client_fds)
+        _shutdown(fd, SHUT_RDWR);
 }
 
-void IPv6ServerNetworker::bindSocket() {
-    _bindSocket(sock_fd, (struct sockaddr*)&addr, sizeof(addr));
+ServerNetworker::~ServerNetworker() {
+    debug("Closing server sockets...");
+    _close(ipv4_fd);
+    _close(ipv6_fd);
+    for (int fd : client_fds)
+        _close(fd);
 }
 
-ClientNetworker::ClientNetworker(std::string host, uint16_t port, int domain)
-    : Networker(port), host(host), domain(domain) {}
-
-static bool validAddress(struct addrinfo* hints, struct addrinfo* res) {
+static bool _valid_address(struct addrinfo* hints, struct addrinfo* res) {
     if (res == nullptr) return false;
     if (hints->ai_family == AF_INET && res->ai_family != AF_INET) return false;
     if (hints->ai_family == AF_INET6 && res->ai_family != AF_INET6)
@@ -74,10 +141,24 @@ static bool validAddress(struct addrinfo* hints, struct addrinfo* res) {
            res->ai_protocol == hints->ai_protocol;
 }
 
-void ClientNetworker::connectToServer() {
+static std::string _domain_to_string(int domain) {
+    switch (domain) {
+        case AF_INET:
+            return "IPv4";
+        case AF_INET6:
+            return "IPv6";
+        case AF_UNSPEC:
+            return "unspecified";
+        default:
+            return "unknown";
+    }
+}
+
+ClientNetworker::ClientNetworker(std::string host,
+                                 std::string port,
+                                 int domain) {
     struct addrinfo hints;
     struct addrinfo *res, *p;
-    std::string port_str = std::to_string(port);
 
     std::memset(&hints, 0, sizeof(hints));
     hints.ai_family = domain;
@@ -85,25 +166,35 @@ void ClientNetworker::connectToServer() {
     hints.ai_protocol = IPPROTO_TCP;
 
     // Get address information
-    int status = getaddrinfo(host.c_str(), port_str.c_str(), &hints, &res);
+    int status = getaddrinfo(host.c_str(), port.c_str(), &hints, &res);
     if (status != 0)
         throw SystemError("getaddrinfo " + std::string(gai_strerror(status)));
 
     // Iterate through the linked list of results
     for (p = res; p != nullptr; p = p->ai_next) {
-        if (!validAddress(&hints, p)) continue;
+        if (!_valid_address(&hints, p)) continue;
         sock_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         if (sock_fd < 0) continue;
         if (connect(sock_fd, p->ai_addr, p->ai_addrlen) < 0) {
-            closeSocket(sock_fd);
+            _close(sock_fd);
             continue;
         }
         break; // If we get here, we have successfully connected
     }
 
-    if (p == nullptr) throw SystemError("failed to resolve hostname");
+    if (p == nullptr)
+        throw SystemError("failed to resolve " + host + ":" + port);
 
     freeaddrinfo(res);
+
+    debug(getLocalAddress(sock_fd) + " connected to " +
+          getPeerAddress(sock_fd) + " (domain " + _domain_to_string(domain) +
+          ")");
+}
+
+ClientNetworker::~ClientNetworker() {
+    debug("Closing client socket...");
+    _close(sock_fd);
 }
 
 std::string getPeerAddress(int sock_fd) {
@@ -158,22 +249,4 @@ std::string getLocalAddress(int sock_fd) {
     else throw SystemError("unknown address family");
 
     return localIP + ":" + localPort;
-}
-
-Networker::Networker(uint16_t port) : sock_fd(-1), port(port) {}
-
-void closeSocket(int sock_fd) {
-    if (sock_fd >= 0) {
-        if (close(sock_fd) < 0) throw SystemError("close");
-    }
-}
-
-void shutdownSocket(int sock_fd) {
-    if (sock_fd >= 0) {
-        if (shutdown(sock_fd, SHUT_RDWR) < 0) throw SystemError("shutdown");
-    }
-}
-
-int Networker::getSocket() {
-    return sock_fd;
 }

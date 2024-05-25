@@ -6,7 +6,7 @@
 
 class Client {
 public:
-    Client(const std::string& host, int port, int domain);
+    Client(std::string host, std::string port, int domain);
     void connectToGame();
 
 private:

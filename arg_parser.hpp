@@ -13,7 +13,7 @@ struct ServerConfig {
 
 struct ClientConfig {
     std::string host;
-    uint16_t port;
+    std::string port;
     int domain;
     std::string seat;
     bool auto_player;

@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
         ClientConfig config = parser.getConfig();
 
         debug("Host: " + config.host);
-        debug("Port: " + std::to_string(config.port));
+        debug("Port: " + config.port);
         debug("IP Version: " + domainToString(config.domain));
         debug("Seat: " + config.seat);
         debug("Auto Player: " + std::string(config.auto_player ? "Yes" : "No"));

@@ -11,14 +11,11 @@
 
 class Server {
 public:
-    Server(int port);
+    Server(uint16_t port);
     void start();
 
 private:
-    IPv4ServerNetworker ipv4_networker;
-    IPv6ServerNetworker ipv6_networker;
-
-    std::unordered_set<int> client_sockets;
+    ServerNetworker networker;
 
     std::thread accept_thread;
     std::thread game_thread;
@@ -31,10 +28,11 @@ private:
 
     void gameThread();
     void acceptThread();
-    void clientThread(int client_socket);
 
     void handleGameOver();
-    void handleNewClient(int client_socket);
+
+public:
+    void playerThread(int fd);
 };
 
 #endif // SERVER_H

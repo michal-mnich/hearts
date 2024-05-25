@@ -125,7 +125,7 @@ void ClientArgumentParser::_parse() {
     auto port = vm["port"].as<std::vector<int>>().back();
     if (port < 1024 || port > 65535)
         throw po::error("port must be in the range 1024-65535");
-    config.port = port;
+    config.port = std::to_string(port);
 
     if (ipv == "4") config.domain = AF_INET;
     else if (ipv == "6") config.domain = AF_INET6;

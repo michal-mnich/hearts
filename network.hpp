@@ -2,66 +2,48 @@
 #define NETWORK_H
 
 #include <arpa/inet.h>
+#include <condition_variable>
+#include <mutex>
 #include <netdb.h>
 #include <string>
+#include <thread>
 #include <unistd.h>
+#include <unordered_set>
+
+#define MAX_CLIENTS 4
 
 std::string getPeerAddress(int sock_fd);
 std::string getLocalAddress(int sock_fd);
 
-void closeSocket(int sock_fd);
-void shutdownSocket(int sock_fd);
+class Server;
 
-class Networker {
-protected:
-    int sock_fd;
-    uint16_t port;
+class ServerNetworker {
+private:
+    int ipv4_fd;
+    int ipv6_fd;
+    struct sockaddr_in ipv4_addr;
+    struct sockaddr_in6 ipv6_addr;
 
-public:
-    Networker(uint16_t port);
-    int getSocket();
-};
+    std::unordered_set<int> client_fds;
 
-class ServerNetworker : public Networker {
-protected:
-    virtual void createSocket() = 0;
-    virtual void bindSocket() = 0;
-    int _createSocket(int domain);
-    void _bindSocket(int sock_fd, struct sockaddr* addr, socklen_t addr_size);
+    std::mutex mtx;
+
+    int active_clients;
+    std::condition_variable active_clients_cv;
 
 public:
     ServerNetworker(uint16_t port);
-    void listenSocket();
+    ~ServerNetworker();
+    void startAccepting(Server* server);
+    void stopAccepting();
+    void disconnectClients();
 };
 
-class IPv4ServerNetworker : public ServerNetworker {
-private:
-    struct sockaddr_in addr;
-
+class ClientNetworker {
 public:
-    IPv4ServerNetworker(uint16_t port);
-    void createSocket() override;
-    void bindSocket() override;
-};
-
-class IPv6ServerNetworker : public ServerNetworker {
-private:
-    struct sockaddr_in6 addr;
-
-public:
-    IPv6ServerNetworker(uint16_t port);
-    void createSocket() override;
-    void bindSocket() override;
-};
-
-class ClientNetworker : public Networker {
-private:
-    std::string host;
-    int domain;
-
-public:
-    ClientNetworker(std::string host, uint16_t port, int domain);
-    void connectToServer();
+    int sock_fd;
+    ClientNetworker(std::string name, std::string service, int domain);
+    ~ClientNetworker();
 };
 
 #endif // NETWORK_H
