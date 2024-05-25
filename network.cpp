@@ -86,7 +86,6 @@ void ServerNetworker::startAccepting(Server* server) {
     while (true) {
         if (poll(fds, 2, -1) < 0) return;
         for (auto fd : fds) {
-            if (fd.revents & POLLHUP || fd.revents & POLLERR) return;
             if (fd.revents & POLLIN) {
                 int client_fd = _accept(fd.fd);
                 if (client_fds.size() >= MAX_CLIENTS) {
@@ -102,6 +101,7 @@ void ServerNetworker::startAccepting(Server* server) {
                         .detach();
                 }
             }
+            else if (fd.revents & POLLHUP || fd.revents & POLLERR) return;
         }
     }
 }
