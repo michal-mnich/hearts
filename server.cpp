@@ -1,6 +1,5 @@
 #include "server.hpp"
 #include "error.hpp"
-#include "network.hpp"
 #include <iostream>
 #include <poll.h>
 

@@ -1,20 +1,8 @@
 #include "arg_parser.hpp"
 #include "client.hpp"
 #include "error.hpp"
+#include "network_common.hpp"
 #include <iostream>
-
-std::string domainToString(int domain) {
-    switch (domain) {
-        case AF_INET:
-            return "IPv4";
-        case AF_INET6:
-            return "IPv6";
-        case AF_UNSPEC:
-            return "unspecified";
-        default:
-            return "unknown";
-    }
-}
 
 int main(int argc, char** argv) {
     try {
@@ -24,7 +12,7 @@ int main(int argc, char** argv) {
 
         debug("Host: " + config.host);
         debug("Port: " + config.port);
-        debug("IP Version: " + domainToString(config.domain));
+        debug("IP Version: " + _domainToString(config.domain));
         debug("Seat: " + config.seat);
         debug("Auto Player: " + std::string(config.auto_player ? "Yes" : "No"));
 

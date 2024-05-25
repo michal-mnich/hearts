@@ -1,7 +1,7 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include "network.hpp"
+#include "network_client.hpp"
 #include <string>
 
 class Client {
