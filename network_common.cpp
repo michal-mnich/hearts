@@ -187,7 +187,7 @@ void writen(int fd, const void* vptr, size_t n) {
     }
 }
 
-void socket_set_timeout(int socket_fd, int timeout) {
+void socket_set_timeout(int socket_fd, unsigned int timeout) {
     struct timeval to = {.tv_sec = timeout, .tv_usec = 0};
     if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &to, sizeof to) < 0) {
         throw Error("setsockopt (SO_RCVTIMEO)");
