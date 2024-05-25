@@ -127,20 +127,33 @@ ServerNetworker::~ServerNetworker() {
         _close(fd);
 }
 
-static bool _valid_address(struct addrinfo* hints, struct addrinfo* res) {
-    if (res == nullptr) return false;
-    if (hints->ai_family == AF_INET && res->ai_family != AF_INET) return false;
-    if (hints->ai_family == AF_INET6 && res->ai_family != AF_INET6)
+static bool _validAddress(struct addrinfo* hints, struct addrinfo* res) {
+    // Check if hints and result are valid
+    if (!hints || !res) return false;
+
+    // Wanted IPv4, got something else
+    if (hints->ai_family == AF_INET && res->ai_family != AF_INET) {
         return false;
+    }
+
+    // Wanted IPv6, got something else
+    if (hints->ai_family == AF_INET6 && res->ai_family != AF_INET6) {
+        return false;
+    }
+
+    // Wanted IPv4 or IPv6, got neither IPv4 nor IPv6
     if (hints->ai_family == AF_UNSPEC && res->ai_family != AF_INET &&
         res->ai_family != AF_INET6)
+    {
         return false;
+    }
 
+    // Check if socket type and protocol matches
     return res->ai_socktype == hints->ai_socktype &&
            res->ai_protocol == hints->ai_protocol;
 }
 
-static std::string _domain_to_string(int domain) {
+static std::string _domainToString(int domain) {
     switch (domain) {
         case AF_INET:
             return "IPv4";
@@ -171,7 +184,7 @@ ClientNetworker::ClientNetworker(std::string host,
 
     // Iterate through the linked list of results
     for (p = res; p != nullptr; p = p->ai_next) {
-        if (!_valid_address(&hints, p)) continue;
+        if (!_validAddress(&hints, p)) continue;
         sock_fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         if (sock_fd < 0) continue;
         if (connect(sock_fd, p->ai_addr, p->ai_addrlen) < 0) {
@@ -187,7 +200,7 @@ ClientNetworker::ClientNetworker(std::string host,
     freeaddrinfo(res);
 
     debug(getLocalAddress(sock_fd) + " connected to " +
-          getPeerAddress(sock_fd) + " (domain " + _domain_to_string(domain) +
+          getPeerAddress(sock_fd) + " (domain " + _domainToString(domain) +
           ")");
 }
 
