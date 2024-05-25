@@ -6,6 +6,8 @@
 
 #define QUEUE_SIZE 4
 
+/* System functions wrappers with error handling */
+
 static void _close(int fd) {
     if (close(fd) < 0) throw SystemError("close");
 }
@@ -49,6 +51,18 @@ static int _accept(int sock_fd) {
     int client_socket = accept(sock_fd, nullptr, nullptr);
     if (client_socket < 0) throw SystemError("accept");
     return client_socket;
+}
+
+static void _getsockname(int sock_fd, struct sockaddr_storage* addr) {
+    socklen_t addrLen = sizeof(*addr);
+    if (getsockname(sock_fd, (struct sockaddr*)addr, &addrLen) < 0)
+        throw SystemError("getsockname");
+}
+
+static void _getpeername(int sock_fd, struct sockaddr_storage* addr) {
+    socklen_t addrLen = sizeof(*addr);
+    if (getpeername(sock_fd, (struct sockaddr*)addr, &addrLen) < 0)
+        throw SystemError("getpeername");
 }
 
 ServerNetworker::ServerNetworker(uint16_t port) {
@@ -209,56 +223,39 @@ ClientNetworker::~ClientNetworker() {
     _close(sock_fd);
 }
 
-std::string getPeerAddress(int sock_fd) {
-    struct sockaddr_storage peerAddr;
-    socklen_t addrLen = sizeof(peerAddr);
+static std::string _getAddressString(struct sockaddr_storage* addr) {
     char ipStr[INET6_ADDRSTRLEN];
-    std::string peerIP, peerPort;
-
-    if (getpeername(sock_fd, (struct sockaddr*)&peerAddr, &addrLen) < 0)
-        throw SystemError("getpeername");
+    std::string ip, port;
 
     // Determine address family and convert IP address to string
-    if (peerAddr.ss_family == AF_INET) {
-        struct sockaddr_in* s = (struct sockaddr_in*)&peerAddr;
+    if (addr->ss_family == AF_INET) {
+        struct sockaddr_in* s = (struct sockaddr_in*)addr;
         inet_ntop(AF_INET, &s->sin_addr, ipStr, sizeof(ipStr));
-        peerIP = std::string(ipStr);
-        peerPort = std::to_string(ntohs(s->sin_port));
+        ip = std::string(ipStr);
+        port = std::to_string(ntohs(s->sin_port));
     }
-    else if (peerAddr.ss_family == AF_INET6) {
-        struct sockaddr_in6* s = (struct sockaddr_in6*)&peerAddr;
+    else if (addr->ss_family == AF_INET6) {
+        struct sockaddr_in6* s = (struct sockaddr_in6*)addr;
         inet_ntop(AF_INET6, &s->sin6_addr, ipStr, sizeof(ipStr));
-        peerIP = "[" + std::string(ipStr) + "]";
-        peerPort = std::to_string(ntohs(s->sin6_port));
+        ip = "[" + std::string(ipStr) + "]";
+        port = std::to_string(ntohs(s->sin6_port));
     }
-    else throw SystemError("unknown address family");
+    else {
+        throw SystemError("unknown address family (" +
+                          std::to_string(addr->ss_family) + ")");
+    }
 
-    return peerIP + ":" + peerPort;
+    return ip + ":" + port;
+}
+
+std::string getPeerAddress(int sock_fd) {
+    struct sockaddr_storage peerAddr;
+    _getpeername(sock_fd, &peerAddr);
+    return _getAddressString(&peerAddr);
 }
 
 std::string getLocalAddress(int sock_fd) {
     struct sockaddr_storage localAddr;
-    socklen_t addrLen = sizeof(localAddr);
-    char ipStr[INET6_ADDRSTRLEN];
-    std::string localIP, localPort;
-
-    if (getsockname(sock_fd, (struct sockaddr*)&localAddr, &addrLen) < 0)
-        throw SystemError("getsockname");
-
-    // Determine address family and convert IP address to string
-    if (localAddr.ss_family == AF_INET) {
-        struct sockaddr_in* s = (struct sockaddr_in*)&localAddr;
-        inet_ntop(AF_INET, &s->sin_addr, ipStr, sizeof(ipStr));
-        localIP = std::string(ipStr);
-        localPort = std::to_string(ntohs(s->sin_port));
-    }
-    else if (localAddr.ss_family == AF_INET6) {
-        struct sockaddr_in6* s = (struct sockaddr_in6*)&localAddr;
-        inet_ntop(AF_INET6, &s->sin6_addr, ipStr, sizeof(ipStr));
-        localIP = "[" + std::string(ipStr) + "]";
-        localPort = std::to_string(ntohs(s->sin6_port));
-    }
-    else throw SystemError("unknown address family");
-
-    return localIP + ":" + localPort;
+    _getsockname(sock_fd, &localAddr);
+    return _getAddressString(&localAddr);
 }
