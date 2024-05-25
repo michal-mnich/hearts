@@ -18,7 +18,7 @@ ClientNetworker::ClientNetworker(std::string host,
     // Get address information
     int status = getaddrinfo(host.c_str(), port.c_str(), &hints, &res);
     if (status != 0)
-        throw SystemError("getaddrinfo " + std::string(gai_strerror(status)));
+        throw Error("getaddrinfo " + std::string(gai_strerror(status)));
 
     // Iterate through the linked list of results
     for (p = res; p != nullptr; p = p->ai_next) {
@@ -33,7 +33,7 @@ ClientNetworker::ClientNetworker(std::string host,
     }
 
     if (p == nullptr)
-        throw SystemError("failed to resolve " + host + ":" + port);
+        throw Error("failed to resolve " + host + ":" + port);
 
     freeaddrinfo(res);
 

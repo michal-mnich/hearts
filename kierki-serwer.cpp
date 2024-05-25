@@ -13,12 +13,12 @@ int main(int argc, char** argv) {
         debug("File: " + config.file);
         debug("Timeout: " + std::to_string(config.timeout));
 
-        Server server(config.port);
+        Server server(config.port, config.timeout);
         server.start();
 
         return 0;
     }
-    catch (const SystemError& e) {
+    catch (const Error& e) {
         std::cerr << e.what() << std::endl;
         return 1;
     }

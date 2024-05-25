@@ -23,4 +23,10 @@ std::string _getAddressString(struct sockaddr_storage* addr);
 std::string getPeerAddress(int sock_fd);
 std::string getLocalAddress(int sock_fd);
 
+void readn(int fd, void* vptr, size_t n);
+void writen(int fd, const void* vptr, size_t n);
+
+void socket_set_timeout(int socket_fd, int timeout);
+void socket_clear_timeout(int socket_fd);
+
 #endif // NETWORK_COMMON_H

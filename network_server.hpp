@@ -3,6 +3,7 @@
 
 #include <arpa/inet.h>
 #include <unordered_map>
+#include <string>
 
 class Server;
 class ServerNetworker {
@@ -18,7 +19,8 @@ public:
     ~ServerNetworker();
     void startAccepting(Server* server);
     void stopAccepting();
-    void disconnectClients();
+    void disconnectAll();
+    void removeClient(int fd);
 };
 
 #endif // NETWORK_SERVER_H

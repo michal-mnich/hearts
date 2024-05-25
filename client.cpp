@@ -1,5 +1,6 @@
 #include "client.hpp"
 #include "error.hpp"
+#include "protocol.hpp"
 #include <iostream>
 #include <signal.h>
 
@@ -7,11 +8,17 @@ Client::Client(std::string host, std::string port, int domain)
     : networker(host, port, domain) {}
 
 void Client::connectToGame() {
-    signal(SIGPIPE, SIG_IGN);
-
-    while (write(networker.sock_fd, "hello", 5) > 0) {
-        sleep(1);
+    try {
+        signal(SIGPIPE, SIG_IGN);
+        while (true) {
+            auto seat = std::string(1, 'a' + rand() % 26);
+            seat = "n";
+            protocol.sendIAM(networker.sock_fd, seat);
+            debug("Sent IAM: " + seat);
+            sleep(2);
+        }
     }
-
-    debug("Server disconnected");
+    catch (std::exception& e) {
+        debug(e.what());
+    }
 }

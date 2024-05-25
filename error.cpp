@@ -3,7 +3,7 @@
 #include <cstring>
 #include <iostream>
 
-SystemError::SystemError(const std::string& message) {
+Error::Error(const std::string& message) {
     error = "ERROR: " + message;
     if (errno) {
         auto code = std::to_string(errno);
@@ -13,7 +13,7 @@ SystemError::SystemError(const std::string& message) {
     }
 }
 
-const char* SystemError::what() const noexcept {
+const char* Error::what() const noexcept {
     return error.c_str();
 }
 

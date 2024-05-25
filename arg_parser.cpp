@@ -20,7 +20,7 @@ void ArgumentParser::parse() {
         _parse();
     }
     catch (const po::error& e) {
-        throw SystemError(e.what());
+        throw Error(e.what());
     }
 }
 

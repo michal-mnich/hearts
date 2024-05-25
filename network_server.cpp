@@ -67,7 +67,13 @@ void ServerNetworker::stopAccepting() {
     _shutdown(ipv6_fd, SHUT_RDWR);
 }
 
-void ServerNetworker::disconnectClients() {
+void ServerNetworker::removeClient(int fd) {
+    debug("Closing client socket...");
+    _close(fd);
+    clients.erase(fd);
+}
+
+void ServerNetworker::disconnectAll() {
     debug("Shutting down client sockets...");
     for (auto c : clients)
         _shutdown(c.first, SHUT_RDWR);
@@ -77,7 +83,4 @@ ServerNetworker::~ServerNetworker() {
     debug("Closing listening sockets...");
     _close(ipv4_fd);
     _close(ipv6_fd);
-    debug("Closing client sockets...");
-    for (auto c : clients)
-        _close(c.first);
 }

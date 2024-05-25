@@ -4,15 +4,15 @@
 #include <exception>
 #include <string>
 
-void debug(const std::string& message);
-
-class SystemError : public std::exception {
+class Error : public std::exception {
 private:
     std::string error;
 
 public:
-    SystemError(const std::string& message);
+    Error(const std::string& message);
     const char* what() const noexcept override;
 };
+
+void debug(const std::string& message);
 
 #endif // ERROR_H

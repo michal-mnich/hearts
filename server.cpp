@@ -1,10 +1,12 @@
 #include "server.hpp"
+#include "common.hpp"
 #include "error.hpp"
+#include "protocol.hpp"
 #include <iostream>
 #include <poll.h>
 
-Server::Server(uint16_t port)
-    : networker(port), active_clients(0), game_over(false) {}
+Server::Server(uint16_t port, unsigned int timeout)
+    : networker(port), protocol(timeout), active_clients(0), game_over(false) {}
 
 void Server::start() {
     debug("Starting accept thread...");
@@ -21,20 +23,21 @@ void Server::start() {
 
     std::unique_lock<std::mutex> lock(mtx);
     active_clients_cv.wait(lock, [this] { return active_clients == 0; });
-    debug("Client threads finished");
+    debug("All client threads finished");
 }
 
 void Server::handleGameOver() {
+    std::lock_guard<std::mutex> lock(mtx);
     debug("Game over!!!");
     game_over.store(true);
     networker.stopAccepting();
-    networker.disconnectClients();
+    networker.disconnectAll();
 }
 
 void Server::acceptThread() {
     networker.startAccepting(this);
     if (!game_over.load())
-        throw SystemError("unexpectedly stopped accepting clients");
+        throw Error("unexpectedly stopped accepting clients");
 }
 
 void Server::playerThread(int fd) {
@@ -43,21 +46,25 @@ void Server::playerThread(int fd) {
         active_clients++;
     }
 
-    // Handle client communication
-    char buffer[1024] = {0};
     while (true) {
-        int bytes_read = read(fd, buffer, sizeof(buffer));
-        if (game_over.load()) {
-            break;
+        try {
+            auto seat = protocol.recvIAM(fd);
+            debug("Received IAM: " + seat);
         }
-        if (bytes_read <= 0) {
-            break;
+        catch (Error& e) {
+            auto msg = std::string(e.what());
+            debug(msg);
+            if (isSubstring(msg, "timeout") || isSubstring(msg, "invalid") ||
+                game_over.load())
+            {
+                break;
+            }
         }
-        // Process client data
     }
 
     {
         std::lock_guard<std::mutex> lock(mtx);
+        networker.removeClient(fd);
         active_clients--;
         if (active_clients == 0) active_clients_cv.notify_one();
     }
