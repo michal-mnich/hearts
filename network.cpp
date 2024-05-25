@@ -107,21 +107,22 @@ void ServerNetworker::startAccepting(Server* server) {
 }
 
 void ServerNetworker::stopAccepting() {
-    debug("Shutting down server sockets...");
+    debug("Shutting down listening sockets...");
     _shutdown(ipv4_fd, SHUT_RDWR);
     _shutdown(ipv6_fd, SHUT_RDWR);
 }
 
 void ServerNetworker::disconnectClients() {
-    debug("Disconnecting clients...");
+    debug("Shutting down client sockets...");
     for (int fd : client_fds)
         _shutdown(fd, SHUT_RDWR);
 }
 
 ServerNetworker::~ServerNetworker() {
-    debug("Closing server sockets...");
+    debug("Closing listening sockets...");
     _close(ipv4_fd);
     _close(ipv6_fd);
+    debug("Closing client sockets...");
     for (int fd : client_fds)
         _close(fd);
 }
