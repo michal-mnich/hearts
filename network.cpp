@@ -51,7 +51,7 @@ static int _accept(int sock_fd) {
     return client_socket;
 }
 
-ServerNetworker::ServerNetworker(uint16_t port) : active_clients(0) {
+ServerNetworker::ServerNetworker(uint16_t port) {
     ipv4_fd = _socket(AF_INET);
     ipv6_fd = _socket(AF_INET6);
 
@@ -87,7 +87,6 @@ void ServerNetworker::startAccepting(Server* server) {
         if (poll(fds, 2, -1) < 0) return;
         for (auto fd : fds) {
             if (fd.revents & POLLIN) {
-                std::lock_guard<std::mutex> lock(mtx);
                 int client_fd = _accept(fd.fd);
                 if (client_fds.size() >= MAX_CLIENTS) {
                     debug("Max clients reached, disconnecting new client");
@@ -115,7 +114,6 @@ void ServerNetworker::stopAccepting() {
 
 void ServerNetworker::disconnectClients() {
     debug("Disconnecting clients...");
-    std::lock_guard<std::mutex> lock(mtx);
     for (int fd : client_fds)
         _shutdown(fd, SHUT_RDWR);
 }

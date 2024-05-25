@@ -23,13 +23,7 @@ private:
     int ipv6_fd;
     struct sockaddr_in ipv4_addr;
     struct sockaddr_in6 ipv6_addr;
-
     std::unordered_set<int> client_fds;
-
-    std::mutex mtx;
-
-    int active_clients;
-    std::condition_variable active_clients_cv;
 
 public:
     ServerNetworker(uint16_t port);
