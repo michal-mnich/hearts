@@ -24,8 +24,6 @@ private:
     void gameThread();
     void acceptThread();
 
-    void handleGameOver();
-
 public:
     void playerThread(int fd);
 };

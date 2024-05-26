@@ -16,20 +16,18 @@ void Server::start() {
     debug("Starting game thread...");
     game_thread = std::thread(&Server::gameThread, this);
 
-    accept_thread.join();
-    debug("Accept thread finished");
-
     game_thread.join();
-    debug("Game thread finished");
 
-    networker.joinClients();
-}
-
-void Server::handleGameOver() {
-    debug("Game over!!!");
+    debug("Game over!");
     game_over.store(true);
+
     networker.stopAccepting();
+    accept_thread.join();
+    debug("Accept thread stopped!");
+
     networker.disconnectAll();
+    networker.joinClients();
+    debug("All clients threads stopped!");
 }
 
 void Server::acceptThread() {
@@ -56,7 +54,6 @@ void Server::playerThread(int fd) {
 
 void Server::gameThread() {
     sleep(20);
-    handleGameOver();
 }
 
 // void Server::addPlayer
