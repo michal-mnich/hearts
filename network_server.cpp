@@ -53,8 +53,9 @@ void ServerNetworker::startAccepting(Server* server) {
                     debug(clients[accepted_fd].first +
                           " accepted connection from " +
                           clients[accepted_fd].second);
-                    std::thread(&Server::playerThread, server, accepted_fd)
-                        .detach();
+                    threads.push_back(std::thread(&Server::playerThread,
+                                                  server,
+                                                  accepted_fd));
                 }
             }
             else if (fd.revents & POLLHUP || fd.revents & POLLERR) return;
@@ -80,6 +81,15 @@ void ServerNetworker::disconnectAll() {
     debug("Shutting down client sockets...");
     for (auto c : clients)
         _shutdown(c.first, SHUT_RDWR);
+}
+
+void ServerNetworker::joinClients() {
+    debug("Joining client threads...");
+    for (auto& thread : threads) {
+        if (thread.joinable()) {
+            thread.join();
+        }
+    }
 }
 
 ServerNetworker::~ServerNetworker() {

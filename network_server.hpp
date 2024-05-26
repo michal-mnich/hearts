@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <string>
 #include <mutex>
+#include <vector>
+#include <thread>
 
 class Server;
 class ServerNetworker {
@@ -16,6 +18,7 @@ private:
 
     std::mutex mtx;
     std::unordered_map<int, std::pair<std::string, std::string>> clients;
+    std::vector<std::thread> threads;
 
 public:
     ServerNetworker(uint16_t port);
@@ -25,6 +28,7 @@ public:
     void disconnectAll();
     void removeClient(int fd);
     std::pair<std::string, std::string> getClientInfo(int client_fd);
+    void joinClients();
 };
 
 #endif // NETWORK_SERVER_H

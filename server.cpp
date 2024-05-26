@@ -6,7 +6,7 @@
 #include <poll.h>
 
 Server::Server(uint16_t port, unsigned int timeout)
-    : networker(port), protocol(&networker, timeout), active_clients(0),
+    : networker(port), protocol(&networker, timeout),
       game_over(false) {}
 
 void Server::start() {
@@ -22,9 +22,7 @@ void Server::start() {
     game_thread.join();
     debug("Game thread finished");
 
-    std::unique_lock<std::mutex> lock(mtx);
-    active_clients_cv.wait(lock, [this] { return active_clients == 0; });
-    debug("All client threads finished");
+    networker.joinClients();
 }
 
 void Server::handleGameOver() {
@@ -41,11 +39,6 @@ void Server::acceptThread() {
 }
 
 void Server::playerThread(int fd) {
-    {
-        std::lock_guard<std::mutex> lock(mtx);
-        active_clients++;
-    }
-
     while (true) {
         try {
             auto seat = protocol.recvIAM(fd);
@@ -59,15 +52,11 @@ void Server::playerThread(int fd) {
     }
 
     networker.removeClient(fd);
-
-    {
-        std::lock_guard<std::mutex> lock(mtx);
-        active_clients--;
-        if (active_clients == 0) active_clients_cv.notify_one();
-    }
 }
 
 void Server::gameThread() {
     sleep(20);
     handleGameOver();
 }
+
+// void Server::addPlayer

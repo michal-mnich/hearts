@@ -19,10 +19,6 @@ private:
     std::thread accept_thread;
     std::thread game_thread;
 
-    int active_clients;
-    std::mutex mtx;
-    std::condition_variable active_clients_cv;
-
     std::atomic<bool> game_over;
 
     void gameThread();
