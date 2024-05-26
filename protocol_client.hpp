@@ -2,17 +2,14 @@
 #define PROTOCOL_CLIENT_H
 
 #include "network_client.hpp"
-#include <fstream>
 
 class ClientProtocol {
 private:
-    std::ofstream logFile;
-    ClientNetworker* networker;
+ClientNetworker* networker;
 
     void logMessage(std::string message, bool incoming);
 public:
     ClientProtocol(ClientNetworker* networker);
-    ~ClientProtocol();
 
     void sendIAM(int fd, std::string seat);
     std::string recvBUSY(int fd);

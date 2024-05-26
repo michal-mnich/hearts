@@ -19,7 +19,7 @@ void Client::connectToGame() {
         }
     }
     catch (std::exception& e) {
-        debug(e.what());
+        std::cerr << e.what() << std::endl;
         auto taken = protocol.recvBUSY(networker.sock_fd);
     }
 }

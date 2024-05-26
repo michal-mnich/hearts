@@ -2,16 +2,11 @@
 #include "common.hpp"
 #include "error.hpp"
 #include "network_common.hpp"
+#include <iostream>
 #include <regex>
 
 ServerProtocol::ServerProtocol(ServerNetworker* networker, unsigned int timeout)
-    : networker(networker), timeout(timeout) {
-    logFile.open(createFilename("server"), std::ios::out | std::ios::trunc);
-}
-
-ServerProtocol::~ServerProtocol() {
-    logFile.close();
-}
+    : networker(networker), timeout(timeout) {}
 
 void ServerProtocol::logMessage(int client_fd,
                                 std::string message,
@@ -20,7 +15,7 @@ void ServerProtocol::logMessage(int client_fd,
     std::string from = clientInfo.first;
     std::string to = clientInfo.second;
     if (incoming) std::swap(from, to);
-    logFile << createLog(from, to, message);
+    std::cout << createLog(from, to, message) << std::flush;
 }
 
 // Returns the seat of the player

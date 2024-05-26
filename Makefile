@@ -1,6 +1,6 @@
 CXX = g++
-CXXFLAGS = -Wall -Wextra -O2 -std=c++20 -lboost_program_options
-CXXFLAGSDEBUG = -DDEBUG -g -Og -Wall -Wextra -Wpedantic -std=c++20 -fsanitize=address -lboost_program_options
+CXXFLAGS = -Wall -Wextra -O2 -std=c++20
+CXXFLAGSDEBUG = -DDEBUG -g -Og -Wall -Wextra -Wpedantic -std=c++20 -fsanitize=address
 DEBUG = 1
 
 ifeq ($(DEBUG), 1)
@@ -12,10 +12,10 @@ endif
 all: kierki-klient kierki-serwer
 
 kierki-klient: kierki-klient.o arg_parser.o client.o network_client.o network_common.o error.o protocol_client.o common.o
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -lboost_program_options -o $@ $^
 
 kierki-serwer: kierki-serwer.o arg_parser.o server.o network_server.o network_common.o error.o protocol_server.o common.o
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -lboost_program_options -o $@ $^
 
 # generated with g++ -MM *.cpp
 arg_parser.o: arg_parser.cpp arg_parser.hpp error.hpp
@@ -41,4 +41,4 @@ server.o: server.cpp server.hpp network_server.hpp protocol_server.hpp \
  common.hpp error.hpp
 
 clean:
-	rm -f kierki-klient kierki-serwer *.o *.log
+	rm -f kierki-klient kierki-serwer *.o

@@ -2,22 +2,17 @@
 #include "common.hpp"
 #include "error.hpp"
 #include "network_common.hpp"
+#include <iostream>
 #include <regex>
 
 ClientProtocol::ClientProtocol(ClientNetworker* networker)
-    : networker(networker) {
-    logFile.open(createFilename("client"), std::ios::out | std::ios::trunc);
-}
-
-ClientProtocol::~ClientProtocol() {
-    logFile.close();
-}
+    : networker(networker) {}
 
 void ClientProtocol::logMessage(std::string message, bool incoming) {
     std::string from = networker->localAddress;
     std::string to = networker->peerAddress;
     if (incoming) std::swap(from, to);
-    logFile << createLog(from, to, message);
+    std::cout << createLog(from, to, message) << std::flush;
 }
 
 void ClientProtocol::sendIAM(int fd, std::string seat) {

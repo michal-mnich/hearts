@@ -41,7 +41,7 @@ void Server::playerThread(int fd) {
             handleIAM(fd);
         }
         catch (Error& e) {
-            debug(e.what());
+            std::cerr << e.what() << std::endl;
             break;
         }
     }
@@ -50,7 +50,7 @@ void Server::playerThread(int fd) {
 }
 
 void Server::gameThread() {
-    sleep(20);
+    while (true);
 }
 
 void Server::handleIAM(int fd) {

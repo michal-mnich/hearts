@@ -21,20 +21,6 @@ std::string createTimestamp() {
     return oss.str();
 }
 
-std::string createFilename(std::string name) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distr(100000, 999999);
-    std::string id = std::to_string(distr(gen));
-
-    std::string ts = createTimestamp();
-    std::replace(ts.begin(), ts.end(), '-', '_');
-    std::replace(ts.begin(), ts.end(), ':', '_');
-    std::replace(ts.begin(), ts.end(), '.', '_');
-
-    return ts + "_" + name + "_" + id + ".log";
-}
-
 std::string createLog(std::string from, std::string to, std::string message) {
     return "[" + from + "," + to + "," + createTimestamp() + "] " + message;
 }

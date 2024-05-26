@@ -4,7 +4,6 @@
 #include <arpa/inet.h>
 #include <string>
 
-#define MAX_CLIENTS 4
 #define QUEUE_SIZE  4
 
 void _close(int sock_fd);

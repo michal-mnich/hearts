@@ -43,20 +43,13 @@ void ServerNetworker::startAccepting(Server* server) {
             if (fd.revents & POLLIN) {
                 std::lock_guard<std::mutex> lock(mtx);
                 int accepted_fd = _accept(fd.fd);
-                if (clients.size() >= MAX_CLIENTS) {
-                    debug("Max clients reached, disconnecting new client");
-                    _close(accepted_fd);
-                }
-                else {
-                    clients[accepted_fd] = {getLocalAddress(accepted_fd),
-                                            getPeerAddress(accepted_fd)};
-                    debug(clients[accepted_fd].first +
-                          " accepted connection from " +
-                          clients[accepted_fd].second);
-                    threads.push_back(std::thread(&Server::playerThread,
-                                                  server,
-                                                  accepted_fd));
-                }
+                clients[accepted_fd] = {getLocalAddress(accepted_fd),
+                                        getPeerAddress(accepted_fd)};
+                debug(clients[accepted_fd].first +
+                      " accepted connection from " +
+                      clients[accepted_fd].second);
+                threads.push_back(
+                    std::thread(&Server::playerThread, server, accepted_fd));
             }
             else if (fd.revents & POLLHUP || fd.revents & POLLERR) return;
         }
