@@ -1,25 +1,21 @@
 #include "client.hpp"
+#include "common.hpp"
 #include "error.hpp"
 #include "protocol_client.hpp"
-#include "common.hpp"
 #include <iostream>
 #include <signal.h>
 
-Client::Client(std::string host, std::string port, int domain)
-    : networker(host, port, domain), protocol(&networker) {}
+Client::Client(ClientConfig& config)
+    : networker(config.host, config.port, config.domain), protocol(&networker),
+      seat(config.seat), auto_player(config.auto_player) {}
 
 void Client::connectToGame() {
     try {
         signal(SIGPIPE, SIG_IGN);
-        while (true) {
-            auto seat = getRandomSeat();
-            protocol.sendIAM(networker.sock_fd, seat);
-            debug("Sent IAM: " + seat);
-            sleep(2);
-        }
+        protocol.sendIAM(networker.sock_fd, seat);
+        auto taken = protocol.recvBUSY(networker.sock_fd);
     }
     catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
-        auto taken = protocol.recvBUSY(networker.sock_fd);
     }
 }

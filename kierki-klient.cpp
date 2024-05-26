@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
         debug("Seat: " + config.seat);
         debug("Auto Player: " + std::string(config.auto_player ? "Yes" : "No"));
 
-        Client client(config.host, config.port, config.domain);
+        Client client(config);
         client.connectToGame();
 
         return 0;

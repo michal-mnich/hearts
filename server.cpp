@@ -36,21 +36,24 @@ void Server::acceptThread() {
 }
 
 void Server::playerThread(int fd) {
-    while (true) {
-        try {
-            handleIAM(fd);
-        }
-        catch (Error& e) {
-            std::cerr << e.what() << std::endl;
-            break;
-        }
+    try {
+        handleIAM(fd);
+    }
+    catch (Error& e) {
+        std::cerr << e.what() << std::endl;
+        goto exit;
     }
 
+    while (true)
+        ;
+
+exit:
     networker.removeClient(fd);
 }
 
 void Server::gameThread() {
-    while (true);
+    while (true)
+        ;
 }
 
 void Server::handleIAM(int fd) {
