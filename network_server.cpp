@@ -41,6 +41,7 @@ void ServerNetworker::startAccepting(Server* server) {
         if (poll(fds, 2, -1) < 0) return;
         for (auto fd : fds) {
             if (fd.revents & POLLIN) {
+                std::lock_guard<std::mutex> lock(mtx);
                 int accepted_fd = _accept(fd.fd);
                 if (clients.size() >= MAX_CLIENTS) {
                     debug("Max clients reached, disconnecting new client");
@@ -68,12 +69,14 @@ void ServerNetworker::stopAccepting() {
 }
 
 void ServerNetworker::removeClient(int fd) {
+    std::lock_guard<std::mutex> lock(mtx);
     debug("Closing client socket...");
     _close(fd);
     clients.erase(fd);
 }
 
 void ServerNetworker::disconnectAll() {
+    std::lock_guard<std::mutex> lock(mtx);
     debug("Shutting down client sockets...");
     for (auto c : clients)
         _shutdown(c.first, SHUT_RDWR);
@@ -83,4 +86,10 @@ ServerNetworker::~ServerNetworker() {
     debug("Closing listening sockets...");
     _close(ipv4_fd);
     _close(ipv6_fd);
+}
+
+std::pair<std::string, std::string>
+ServerNetworker::getClientInfo(int client_fd) {
+    std::lock_guard<std::mutex> lock(mtx);
+    return clients[client_fd];
 }

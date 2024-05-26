@@ -1,12 +1,13 @@
 #include "server.hpp"
 #include "common.hpp"
 #include "error.hpp"
-#include "protocol.hpp"
+#include "protocol_server.hpp"
 #include <iostream>
 #include <poll.h>
 
 Server::Server(uint16_t port, unsigned int timeout)
-    : networker(port), protocol(timeout), active_clients(0), game_over(false) {}
+    : networker(port), protocol(&networker, timeout), active_clients(0),
+      game_over(false) {}
 
 void Server::start() {
     debug("Starting accept thread...");
@@ -27,7 +28,6 @@ void Server::start() {
 }
 
 void Server::handleGameOver() {
-    std::lock_guard<std::mutex> lock(mtx);
     debug("Game over!!!");
     game_over.store(true);
     networker.stopAccepting();
@@ -54,17 +54,14 @@ void Server::playerThread(int fd) {
         catch (Error& e) {
             auto msg = std::string(e.what());
             debug(msg);
-            if (isSubstring(msg, "timeout") || isSubstring(msg, "invalid") ||
-                game_over.load())
-            {
-                break;
-            }
+            break;
         }
     }
 
+    networker.removeClient(fd);
+
     {
         std::lock_guard<std::mutex> lock(mtx);
-        networker.removeClient(fd);
         active_clients--;
         if (active_clients == 0) active_clients_cv.notify_one();
     }

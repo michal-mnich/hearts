@@ -2,8 +2,7 @@
 #define CLIENT_H
 
 #include "network_client.hpp"
-#include "protocol.hpp"
-#include <string>
+#include "protocol_client.hpp"
 
 class Client {
 public:

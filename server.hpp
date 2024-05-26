@@ -2,7 +2,7 @@
 #define SERVER_H
 
 #include "network_server.hpp"
-#include "protocol.hpp"
+#include "protocol_server.hpp"
 #include <condition_variable>
 
 #define QUEUE_SIZE 4
