@@ -41,4 +41,4 @@ server.o: server.cpp server.hpp network_server.hpp protocol_server.hpp \
  common.hpp error.hpp
 
 clean:
-	rm -f kierki-klient kierki-serwer *.o
+	rm -f kierki-klient kierki-serwer *.o *.log

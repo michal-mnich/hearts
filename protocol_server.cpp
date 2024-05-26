@@ -6,7 +6,7 @@
 
 ServerProtocol::ServerProtocol(ServerNetworker* networker, unsigned int timeout)
     : networker(networker), timeout(timeout) {
-    logFile.open("server.log", std::ios::out | std::ios::trunc);
+    logFile.open(createFilename("server"), std::ios::out | std::ios::trunc);
 }
 
 ServerProtocol::~ServerProtocol() {

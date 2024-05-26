@@ -1,12 +1,12 @@
 #include "protocol_client.hpp"
+#include "common.hpp"
 #include "error.hpp"
 #include "network_common.hpp"
-#include "common.hpp"
 #include <regex>
 
 ClientProtocol::ClientProtocol(ClientNetworker* networker)
     : networker(networker) {
-    logFile.open("client.log", std::ios::out | std::ios::trunc);
+    logFile.open(createFilename("client"), std::ios::out | std::ios::trunc);
 }
 
 ClientProtocol::~ClientProtocol() {
