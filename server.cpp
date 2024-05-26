@@ -6,7 +6,8 @@
 #include <poll.h>
 
 Server::Server(uint16_t port, unsigned int timeout)
-    : networker(port), protocol(&networker, timeout), game_over(false) {}
+    : networker(port), protocol(&networker, timeout), game_over(false),
+      table(4) {}
 
 void Server::start() {
     debug("Starting accept thread...");
@@ -36,27 +37,30 @@ void Server::acceptThread() {
 }
 
 void Server::playerThread(int fd) {
-    try {
-        handleIAM(fd);
-    }
-    catch (Error& e) {
-        std::cerr << e.what() << std::endl;
-        goto exit;
-    }
+    std::string seat;
 
-    while (true)
-        ;
+    do {
+        try {
+            seat = handleIAM(fd);
+        }
+        catch (Error& e) {
+            std::cerr << e.what() << std::endl;
+            break;
+        }
+        debug("Player " + seat + " is ready!");
+        table.arrive_and_wait();
+    } while (0);
 
-exit:
     networker.removeClient(fd);
 }
 
 void Server::gameThread() {
-    while (true)
-        ;
+    table.wait();
+    debug("All players are ready!");
+    sleep(5);
 }
 
-void Server::handleIAM(int fd) {
+std::string Server::handleIAM(int fd) {
     auto seat = protocol.recvIAM(fd);
 
     std::lock_guard<std::mutex> lock(mtx);
@@ -69,4 +73,6 @@ void Server::handleIAM(int fd) {
         debug("Seat " + seat + " taken by client " +
               networker.getClientInfo(fd).second);
     }
+
+    return seat;
 }

@@ -28,7 +28,6 @@ std::string ServerProtocol::recvIAM(int fd) {
     std::regex pattern("^IAM[NESW]\r\n$");
     if (!std::regex_match(message, pattern)) throw Error("invalid IAM message");
     logMessage(fd, message, true);
-    debug("Received IAM" + message.substr(3, 1));
     return message.substr(3, 1);
 }
 
@@ -36,5 +35,4 @@ void ServerProtocol::sendBUSY(int fd, std::string taken) {
     std::string message = "BUSY" + taken + "\r\n";
     writen(fd, message.c_str(), message.size());
     logMessage(fd, message, false);
-    debug("Sent BUSY" + taken);
 }

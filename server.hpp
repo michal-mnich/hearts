@@ -5,6 +5,7 @@
 #include "protocol_server.hpp"
 #include <condition_variable>
 #include <map>
+#include <latch>
 
 #define QUEUE_SIZE 4
 
@@ -25,9 +26,11 @@ private:
     std::mutex mtx;
     std::map<std::string, int> players;
 
+    std::latch table;
+
     void gameThread();
     void acceptThread();
-    void handleIAM(int fd);
+    std::string handleIAM(int fd);
 
 public:
     void playerThread(int fd);

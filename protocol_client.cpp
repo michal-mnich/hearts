@@ -19,7 +19,6 @@ void ClientProtocol::sendIAM(int fd, std::string seat) {
     std::string message = "IAM" + seat + "\r\n";
     writen(fd, message.c_str(), message.size());
     logMessage(message, false);
-    debug("Sent IAM" + seat);
 }
 
 std::string ClientProtocol::recvBUSY(int fd) {
@@ -30,6 +29,5 @@ std::string ClientProtocol::recvBUSY(int fd) {
     logMessage(message, true);
     int num_taken = message.size() - 6;
     std::string taken = message.substr(4, num_taken);
-    debug("Received BUSY" + taken);
     return taken;
 }
