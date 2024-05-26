@@ -17,7 +17,7 @@ public:
     ~ServerProtocol();
 
     std::string recvIAM(int fd);
-    void sendBUSY(int fd);
+    void sendBUSY(int fd, std::string taken);
     void sendDEAL();
     void sendTRICK();
     void recvTRICK();

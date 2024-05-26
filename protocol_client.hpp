@@ -15,7 +15,7 @@ public:
     ~ClientProtocol();
 
     void sendIAM(int fd, std::string seat);
-    void recvBUSY();
+    std::string recvBUSY(int fd);
     void recvDEAL();
     void recvTRICK();
     void sendTRICK();

@@ -200,3 +200,14 @@ void socket_clear_timeout(int socket_fd) {
         throw Error("setsockopt (SO_RCVTIMEO)");
     }
 }
+
+std::string readUntilEnd(int fd) {
+    char buf;
+    std::string message;
+    while (true) {
+        readn(fd, &buf, 1);
+        message += buf;
+        if (buf == '\n') break;
+    }
+    return message;
+}

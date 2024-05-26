@@ -4,6 +4,7 @@
 #include "network_server.hpp"
 #include "protocol_server.hpp"
 #include <condition_variable>
+#include <map>
 
 #define QUEUE_SIZE 4
 
@@ -21,8 +22,12 @@ private:
 
     std::atomic<bool> game_over;
 
+    std::mutex mtx;
+    std::map<std::string, int> players;
+
     void gameThread();
     void acceptThread();
+    void handleIAM(int fd);
 
 public:
     void playerThread(int fd);

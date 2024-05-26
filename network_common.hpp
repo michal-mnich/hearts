@@ -29,4 +29,6 @@ void writen(int fd, const void* vptr, size_t n);
 void socket_set_timeout(int socket_fd, unsigned int timeout);
 void socket_clear_timeout(int socket_fd);
 
+std::string readUntilEnd(int fd);
+
 #endif // NETWORK_COMMON_H

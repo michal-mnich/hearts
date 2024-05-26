@@ -1,6 +1,7 @@
 #include "client.hpp"
 #include "error.hpp"
 #include "protocol_client.hpp"
+#include "common.hpp"
 #include <iostream>
 #include <signal.h>
 
@@ -11,7 +12,7 @@ void Client::connectToGame() {
     try {
         signal(SIGPIPE, SIG_IGN);
         while (true) {
-            std::string seat = "N";
+            auto seat = getRandomSeat();
             protocol.sendIAM(networker.sock_fd, seat);
             debug("Sent IAM: " + seat);
             sleep(2);
@@ -19,5 +20,6 @@ void Client::connectToGame() {
     }
     catch (std::exception& e) {
         debug(e.what());
+        auto taken = protocol.recvBUSY(networker.sock_fd);
     }
 }
