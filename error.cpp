@@ -22,5 +22,7 @@ void debug(const std::string& message) {
     std::cerr << message << std::endl;
 }
 #else
-void debug(const std::string& message) {}
+void debug(const std::string& message) {
+    (void)message;
+}
 #endif
