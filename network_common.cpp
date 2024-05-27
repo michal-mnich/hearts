@@ -2,6 +2,7 @@
 #include "error.hpp"
 #include <netdb.h>
 #include <unistd.h>
+#include <poll.h>
 
 /* System functions wrappers with error handling */
 
@@ -210,4 +211,16 @@ std::string readUntilEnd(int fd) {
         if (buf == '\n') break;
     }
     return message;
+}
+
+void waitForRead(int fd, int timeout) {
+    struct pollfd fds[1];
+    fds[0].fd = fd;
+    fds[0].events = POLLIN;
+
+    int ret = poll(fds, 1, timeout);
+    if (ret < 0) throw Error("poll");
+    if (ret == 0) throw Error("poll (timeout)");
+    if (fds[0].revents & POLLIN) return;
+    throw Error("poll (revents)");
 }

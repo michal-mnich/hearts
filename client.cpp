@@ -13,8 +13,10 @@ void Client::connectToGame() {
     try {
         signal(SIGPIPE, SIG_IGN);
         protocol.sendIAM(networker.sock_fd, seat);
-        std::string taken;
-        protocol.recvBUSY(networker.sock_fd, taken);
+
+        uint8_t type;
+        std::string first, cards;
+        protocol.recvDEAL(networker.sock_fd, type, first, cards);
     }
     catch (std::exception& e) {
         std::cerr << e.what() << std::endl;

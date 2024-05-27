@@ -13,10 +13,7 @@
 struct Deal {
     uint8_t type;
     std::string first;
-    std::string cardsN;
-    std::string cardsE;
-    std::string cardsS;
-    std::string cardsW;
+    std::map<std::string, std::string> cards; // seat, cards
 };
 
 class Server {
@@ -28,9 +25,6 @@ private:
     ServerNetworker networker;
     ServerProtocol protocol;
 
-    std::thread accept_thread;
-    std::thread game_thread;
-
     std::atomic<bool> game_over;
 
     std::mutex mtx;
@@ -40,7 +34,7 @@ private:
 
     std::vector<Deal> deals;
 
-    void gameThread();
+    void gameThread(Deal deal);
     void acceptThread();
     std::string handleIAM(int fd);
     void parseFile(const std::string& file);

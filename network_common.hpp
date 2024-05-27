@@ -29,5 +29,6 @@ void socket_set_timeout(int socket_fd, unsigned int timeout);
 void socket_clear_timeout(int socket_fd);
 
 std::string readUntilEnd(int fd);
+void waitForRead(int fd, int timeout);
 
 #endif // NETWORK_COMMON_H

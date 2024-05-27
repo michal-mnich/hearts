@@ -1,6 +1,7 @@
 #include "server.hpp"
 #include "common.hpp"
 #include "error.hpp"
+#include "network_common.hpp"
 #include "protocol_server.hpp"
 #include <fstream>
 #include <iostream>
@@ -18,28 +19,19 @@ void Server::parseFile(const std::string& filename) {
         deal.first = line.substr(1, 1);
 
         std::getline(file, line);
-        deal.cardsN = line;
+        deal.cards["N"] = line;
 
         std::getline(file, line);
-        deal.cardsE = line;
+        deal.cards["E"] = line;
 
         std::getline(file, line);
-        deal.cardsS = line;
+        deal.cards["S"] = line;
 
         std::getline(file, line);
-        deal.cardsW = line;
+        deal.cards["W"] = line;
 
         deals.push_back(deal);
     }
-}
-
-void printDeal(const Deal& deal) {
-    std::cout << "Deal type: " << (int)deal.type << std::endl;
-    std::cout << "First player: " << deal.first << std::endl;
-    std::cout << "North: " << deal.cardsN << std::endl;
-    std::cout << "East: " << deal.cardsE << std::endl;
-    std::cout << "South: " << deal.cardsS << std::endl;
-    std::cout << "West: " << deal.cardsW << std::endl;
 }
 
 Server::Server(ServerConfig& config)
@@ -49,24 +41,32 @@ Server::Server(ServerConfig& config)
 }
 
 void Server::start() {
-    debug("Starting accept thread...");
-    accept_thread = std::thread(&Server::acceptThread, this);
+    int i = 1;
+    for (const auto& deal : deals) {
+        debug("Starting deal " + std::to_string(i) + "...");
 
-    debug("Starting game thread...");
-    game_thread = std::thread(&Server::gameThread, this);
+        debug("Starting accept thread...");
+        auto accept_thread = std::thread(&Server::acceptThread, this);
 
-    game_thread.join();
+        debug("Starting game thread...");
+        auto game_thread = std::thread(&Server::gameThread, this, deal);
+        game_thread.join();
 
-    debug("Game over!");
-    game_over.store(true);
+        debug("Game over!");
+        game_over.store(true);
 
-    networker.stopAccepting();
-    accept_thread.join();
-    debug("Accept thread stopped!");
+        networker.stopAccepting();
+        accept_thread.join();
+        debug("Accept thread stopped!");
 
-    networker.disconnectAll();
-    networker.joinClients();
-    debug("All clients threads stopped!");
+        networker.disconnectAll();
+        networker.joinClients();
+        debug("All clients threads stopped!");
+
+        debug("Deal " + std::to_string(i) + " finished!");
+        i++;
+        break;
+    }
 }
 
 void Server::acceptThread() {
@@ -88,15 +88,18 @@ void Server::playerThread(int fd) {
         }
         debug("Player " + seat + " is ready!");
         table.arrive_and_wait();
+        waitForRead(fd, -1);
     } while (0);
 
     networker.removeClient(fd);
 }
 
-void Server::gameThread() {
+void Server::gameThread(Deal deal) {
     table.wait();
     debug("All players are ready!");
-    sleep(5);
+    for (const auto& [seat, fd] : players) {
+        protocol.sendDEAL(fd, deal.type, deal.first, deal.cards[seat]);
+    }
 }
 
 std::string Server::handleIAM(int fd) {
