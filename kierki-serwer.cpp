@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
         debug("File: " + config.file);
         debug("Timeout: " + std::to_string(config.timeout));
 
-        Server server(config.port, config.timeout);
+        Server server(config);
         server.start();
 
         return 0;

@@ -15,7 +15,7 @@ public:
 
     std::string recvIAM(int fd);
     void sendBUSY(int fd, std::string taken);
-    void sendDEAL();
+    void sendDEAL(int fd, uint8_t type, std::string first, std::string cards);
     void sendTRICK();
     void recvTRICK();
     void sendWRONG();

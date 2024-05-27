@@ -1,17 +1,27 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#include "arg_parser.hpp"
 #include "network_server.hpp"
 #include "protocol_server.hpp"
 #include <condition_variable>
-#include <map>
 #include <latch>
+#include <map>
 
 #define QUEUE_SIZE 4
 
+struct Deal {
+    uint8_t type;
+    std::string first;
+    std::string cardsN;
+    std::string cardsE;
+    std::string cardsS;
+    std::string cardsW;
+};
+
 class Server {
 public:
-    Server(uint16_t port, unsigned int timeout);
+    Server(ServerConfig& config);
     void start();
 
 private:
@@ -28,9 +38,12 @@ private:
 
     std::latch table;
 
+    std::vector<Deal> deals;
+
     void gameThread();
     void acceptThread();
     std::string handleIAM(int fd);
+    void parseFile(const std::string& file);
 
 public:
     void playerThread(int fd);

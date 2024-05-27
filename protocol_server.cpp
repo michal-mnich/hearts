@@ -18,7 +18,6 @@ void ServerProtocol::logMessage(int client_fd,
     std::cout << createLog(from, to, message) << std::flush;
 }
 
-// Returns the seat of the player
 std::string ServerProtocol::recvIAM(int fd) {
     static char buffer[6] = {0};
     socket_set_timeout(fd, timeout);
@@ -33,6 +32,16 @@ std::string ServerProtocol::recvIAM(int fd) {
 
 void ServerProtocol::sendBUSY(int fd, std::string taken) {
     std::string message = "BUSY" + taken + "\r\n";
+    writen(fd, message.c_str(), message.size());
+    logMessage(fd, message, false);
+}
+
+void ServerProtocol::sendDEAL(int fd,
+                              uint8_t type,
+                              std::string first,
+                              std::string cards) {
+    std::string message =
+        "DEAL" + std::to_string(type) + first + cards + "\r\n";
     writen(fd, message.c_str(), message.size());
     logMessage(fd, message, false);
 }

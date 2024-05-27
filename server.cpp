@@ -2,12 +2,51 @@
 #include "common.hpp"
 #include "error.hpp"
 #include "protocol_server.hpp"
+#include <fstream>
 #include <iostream>
 #include <poll.h>
+#include <sstream>
 
-Server::Server(uint16_t port, unsigned int timeout)
-    : networker(port), protocol(&networker, timeout), game_over(false),
-      table(4) {}
+void Server::parseFile(const std::string& filename) {
+    std::ifstream file(filename);
+    std::string line;
+
+    while (std::getline(file, line)) {
+        Deal deal;
+
+        deal.type = line[0] - '0';
+        deal.first = line.substr(1, 1);
+
+        std::getline(file, line);
+        deal.cardsN = line;
+
+        std::getline(file, line);
+        deal.cardsE = line;
+
+        std::getline(file, line);
+        deal.cardsS = line;
+
+        std::getline(file, line);
+        deal.cardsW = line;
+
+        deals.push_back(deal);
+    }
+}
+
+void printDeal(const Deal& deal) {
+    std::cout << "Deal type: " << (int)deal.type << std::endl;
+    std::cout << "First player: " << deal.first << std::endl;
+    std::cout << "North: " << deal.cardsN << std::endl;
+    std::cout << "East: " << deal.cardsE << std::endl;
+    std::cout << "South: " << deal.cardsS << std::endl;
+    std::cout << "West: " << deal.cardsW << std::endl;
+}
+
+Server::Server(ServerConfig& config)
+    : networker(config.port), protocol(&networker, config.timeout),
+      game_over(false), table(4) {
+    parseFile(config.file);
+}
 
 void Server::start() {
     debug("Starting accept thread...");
