@@ -2,6 +2,7 @@
 #define PROTOCOL_CLIENT_H
 
 #include "network_client.hpp"
+#include <inttypes.h>
 
 class ClientProtocol {
 private:
@@ -12,8 +13,8 @@ public:
     ClientProtocol(ClientNetworker* networker);
 
     void sendIAM(int fd, std::string seat);
-    std::string recvBUSY(int fd);
-    void recvDEAL();
+    void recvBUSY(int fd, std::string& taken);
+    void recvDEAL(int fd, uint8_t& type, std::string& first, std::string& cards);
     void recvTRICK();
     void sendTRICK();
     void recvWRONG();

@@ -13,7 +13,8 @@ void Client::connectToGame() {
     try {
         signal(SIGPIPE, SIG_IGN);
         protocol.sendIAM(networker.sock_fd, seat);
-        auto taken = protocol.recvBUSY(networker.sock_fd);
+        std::string taken;
+        protocol.recvBUSY(networker.sock_fd, taken);
     }
     catch (std::exception& e) {
         std::cerr << e.what() << std::endl;

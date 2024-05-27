@@ -18,7 +18,7 @@ void ServerProtocol::logMessage(int client_fd,
     std::cout << createLog(from, to, message) << std::flush;
 }
 
-std::string ServerProtocol::recvIAM(int fd) {
+void ServerProtocol::recvIAM(int fd, std::string& seat) {
     static char buffer[6] = {0};
     socket_set_timeout(fd, timeout);
     readn(fd, buffer, sizeof(buffer));
@@ -27,7 +27,7 @@ std::string ServerProtocol::recvIAM(int fd) {
     std::regex pattern("^IAM[NESW]\r\n$");
     if (!std::regex_match(message, pattern)) throw Error("invalid IAM message");
     logMessage(fd, message, true);
-    return message.substr(3, 1);
+    seat = message.substr(3, 1);
 }
 
 void ServerProtocol::sendBUSY(int fd, std::string taken) {

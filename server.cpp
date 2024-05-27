@@ -100,7 +100,8 @@ void Server::gameThread() {
 }
 
 std::string Server::handleIAM(int fd) {
-    auto seat = protocol.recvIAM(fd);
+    std::string seat;
+    protocol.recvIAM(fd, seat);
 
     std::lock_guard<std::mutex> lock(mtx);
     if (players.contains(seat)) {

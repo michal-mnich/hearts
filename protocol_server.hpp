@@ -13,7 +13,7 @@ private:
 public:
     ServerProtocol(ServerNetworker* networker, unsigned int timeout);
 
-    std::string recvIAM(int fd);
+    void recvIAM(int fd, std::string& seat);
     void sendBUSY(int fd, std::string taken);
     void sendDEAL(int fd, uint8_t type, std::string first, std::string cards);
     void sendTRICK();

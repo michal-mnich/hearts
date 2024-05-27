@@ -21,13 +21,12 @@ void ClientProtocol::sendIAM(int fd, std::string seat) {
     logMessage(message, false);
 }
 
-std::string ClientProtocol::recvBUSY(int fd) {
+void ClientProtocol::recvBUSY(int fd, std::string& taken) {
     std::string message = readUntilEnd(fd);
     std::regex pattern("^BUSY[NESW]{1,4}\r\n$");
     if (!std::regex_match(message, pattern))
         throw Error("invalid BUSY message");
     logMessage(message, true);
     int num_taken = message.size() - 6;
-    std::string taken = message.substr(4, num_taken);
-    return taken;
+    taken = message.substr(4, num_taken);
 }
