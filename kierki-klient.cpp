@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
 
         return 0;
     }
-    catch (const Error& e) {
+    catch (Error& e) {
         std::cerr << e.what() << std::endl;
         return 1;
     }

@@ -4,9 +4,12 @@
 #include "network_common.hpp"
 #include <iostream>
 #include <regex>
+#include <signal.h>
 
 ClientProtocol::ClientProtocol(ClientNetworker* networker)
-    : networker(networker) {}
+    : networker(networker) {
+    signal(SIGPIPE, SIG_IGN);
+}
 
 void ClientProtocol::logMessage(std::string message, bool incoming) {
     std::string from = networker->localAddress;
@@ -22,7 +25,7 @@ void ClientProtocol::sendIAM(int fd, std::string seat) {
 }
 
 void ClientProtocol::recvBUSY(int fd, std::string& taken) {
-    std::string message = readUntilEnd(fd);
+    std::string message = readMessage(fd, -1);
     std::regex pattern("^BUSY[NESW]{1,4}\r\n$");
     if (!std::regex_match(message, pattern))
         throw Error("invalid BUSY message");
@@ -35,7 +38,7 @@ void ClientProtocol::recvDEAL(int fd,
                               uint8_t& type,
                               std::string& first,
                               std::string& cards) {
-    std::string message = readUntilEnd(fd);
+    std::string message = readMessage(fd, -1);
     std::regex pattern("^DEAL[1-7][NESW]((?:(10|[2-9JQKA])[SHDC]){13})\r\n$");
     if (!std::regex_match(message, pattern))
         throw Error("invalid DEAL message");

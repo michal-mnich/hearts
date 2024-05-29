@@ -1,8 +1,8 @@
 #include "network_common.hpp"
 #include "error.hpp"
 #include <netdb.h>
-#include <unistd.h>
 #include <poll.h>
+#include <unistd.h>
 
 /* System functions wrappers with error handling */
 
@@ -213,14 +213,63 @@ std::string readUntilEnd(int fd) {
     return message;
 }
 
-void waitForRead(int fd, int timeout) {
-    struct pollfd fds[1];
-    fds[0].fd = fd;
-    fds[0].events = POLLIN;
+#define BUF_SIZE 1024
+#define MAX_MSG  100
 
-    int ret = poll(fds, 1, timeout);
-    if (ret < 0) throw Error("poll");
-    if (ret == 0) throw Error("poll (timeout)");
-    if (fds[0].revents & POLLIN) return;
-    throw Error("poll (revents)");
+#include <chrono>
+
+static char buffer[BUF_SIZE];
+
+void _pollInOne(int fd, int timeout) {
+    struct pollfd pollfd;
+    pollfd.fd = fd;
+    pollfd.events = POLLIN;
+    int ret = poll(&pollfd, 1, timeout);
+    if (ret < 0) {
+        throw Error("poll");
+    }
+    if (ret == 0) {
+        throw Error("poll (timeout)");
+    }
+    if (!(pollfd.revents & POLLIN)) {
+        throw Error("poll (revents)");
+    }
+}
+
+std::string _read(int fd) {
+    int nread;
+begin:
+    nread = read(fd, buffer, BUF_SIZE);
+    if (nread < 0 && errno == EINTR) {
+        goto begin;
+    }
+    if (nread < 0) {
+        throw Error("read");
+    }
+    if (nread == 0) {
+        throw Error("read (connection closed by peer)");
+    }
+    std::string res(buffer, nread);
+    return res;
+}
+
+std::string readMessage(int fd, int timeout) {
+    std::string message, chunk;
+    bool timeout_mode = (timeout != -1);
+    if (timeout_mode) timeout *= 1000;
+    while (true) {
+        auto start = std::chrono::system_clock::now();
+        _pollInOne(fd, timeout);
+        auto end = std::chrono::system_clock::now();
+
+        if (timeout_mode) {
+            auto dur = duration_cast<std::chrono::milliseconds>(end - start);
+            timeout -= dur.count();
+            if (timeout <= 0) throw Error("readMessage (timeout)");
+        }
+
+        chunk = _read(fd);
+        message += chunk;
+        if (message.back() == '\n') return message;
+    }
 }

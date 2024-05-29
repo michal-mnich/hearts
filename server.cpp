@@ -88,7 +88,7 @@ void Server::playerThread(int fd) {
         }
         debug("Player " + seat + " is ready!");
         table.arrive_and_wait();
-        waitForRead(fd, -1);
+        sleep(10);
     } while (0);
 
     networker.removeClient(fd);

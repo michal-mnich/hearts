@@ -1,16 +1,12 @@
 #ifndef ERROR_H
 #define ERROR_H
 
-#include <exception>
+#include <stdexcept>
 #include <string>
 
-class Error : public std::exception {
-private:
-    std::string error;
-
+class Error : public std::runtime_error {
 public:
     Error(const std::string& message);
-    const char* what() const noexcept override;
 };
 
 void debug(const std::string& message);

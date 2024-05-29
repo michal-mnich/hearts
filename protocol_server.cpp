@@ -4,9 +4,12 @@
 #include "network_common.hpp"
 #include <iostream>
 #include <regex>
+#include <signal.h>
 
 ServerProtocol::ServerProtocol(ServerNetworker* networker, unsigned int timeout)
-    : networker(networker), timeout(timeout) {}
+    : networker(networker), timeout(timeout) {
+    signal(SIGPIPE, SIG_IGN);
+}
 
 void ServerProtocol::logMessage(int client_fd,
                                 std::string message,
@@ -19,11 +22,7 @@ void ServerProtocol::logMessage(int client_fd,
 }
 
 void ServerProtocol::recvIAM(int fd, std::string& seat) {
-    static char buffer[6] = {0};
-    socket_set_timeout(fd, timeout);
-    readn(fd, buffer, sizeof(buffer));
-    socket_clear_timeout(fd);
-    std::string message(buffer, 6);
+    auto message = readMessage(fd, timeout);
     std::regex pattern("^IAM[NESW]\r\n$");
     if (!std::regex_match(message, pattern)) throw Error("invalid IAM message");
     logMessage(fd, message, true);
@@ -44,4 +43,25 @@ void ServerProtocol::sendDEAL(int fd,
         "DEAL" + std::to_string(type) + first + cards + "\r\n";
     writen(fd, message.c_str(), message.size());
     logMessage(fd, message, false);
+}
+
+void ServerProtocol::sendTRICK(int fd,
+                               uint8_t trick,
+                               std::string cardsOnTable) {
+    std::string message =
+        "TRICK" + std::to_string(trick) + cardsOnTable + "\r\n";
+    writen(fd, message.c_str(), message.size());
+    logMessage(fd, message, false);
+}
+
+void ServerProtocol::recvTRICK(int fd,
+                               uint8_t& trick,
+                               std::string& cardPlaced) {
+    auto message = readMessage(fd, timeout);
+    std::regex pattern("^TRICK[1-7]((10|[2-9JQKA])[SHDC])\r\n$");
+    if (!std::regex_match(message, pattern))
+        throw Error("invalid TRICK message");
+    logMessage(fd, message, true);
+    trick = message[5] - '0';
+    cardPlaced = message.substr(6, 2);
 }

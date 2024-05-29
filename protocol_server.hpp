@@ -16,8 +16,8 @@ public:
     void recvIAM(int fd, std::string& seat);
     void sendBUSY(int fd, std::string taken);
     void sendDEAL(int fd, uint8_t type, std::string first, std::string cards);
-    void sendTRICK();
-    void recvTRICK();
+    void sendTRICK(int fd, uint8_t trick, std::string cardsOnTable);
+    void recvTRICK(int fd, uint8_t& trick, std::string& cardPlaced);
     void sendWRONG();
     void sendTAKEN();
     void sendSCORE();
