@@ -6,9 +6,7 @@
 #include <unistd.h>
 
 #define BUF_SIZE 1024
-#define MAX_MSG  100
-
-static char buffer[BUF_SIZE];
+#define MAX_MSG_SIZE 64
 
 /* System functions wrappers with error handling */
 
@@ -108,23 +106,6 @@ std::string _domainToString(int domain) {
     }
 }
 
-std::string _read(int fd) {
-    int nread;
-begin:
-    nread = read(fd, buffer, BUF_SIZE);
-    if (nread < 0 && errno == EINTR) {
-        goto begin;
-    }
-    if (nread < 0) {
-        throw Error("read");
-    }
-    if (nread == 0) {
-        throw Error("read (connection closed by peer)");
-    }
-    std::string res(buffer, nread);
-    return res;
-}
-
 std::string _getAddressString(struct sockaddr_storage* addr) {
     char ipStr[INET6_ADDRSTRLEN];
     std::string ip, port;
@@ -182,6 +163,10 @@ void writen(int fd, const void* vptr, size_t n) {
     }
 }
 
+void sendMessage(int fd, const std::string& message) {
+    writen(fd, message.c_str(), message.size());
+}
+
 void waitPollIn(int fd, int timeout) {
     struct pollfd pollfd;
     pollfd.fd = fd;
@@ -196,6 +181,24 @@ void waitPollIn(int fd, int timeout) {
     if (!(pollfd.revents & POLLIN)) {
         throw Error("poll (revents)");
     }
+}
+
+std::string _read(int fd) {
+    char buffer[BUF_SIZE];
+    int nread;
+begin:
+    nread = read(fd, buffer, BUF_SIZE);
+    if (nread < 0 && errno == EINTR) {
+        goto begin;
+    }
+    if (nread < 0) {
+        throw Error("read");
+    }
+    if (nread == 0) {
+        throw Error("read (connection closed by peer)");
+    }
+    std::string res(buffer, nread);
+    return res;
 }
 
 std::string recvMessage(int fd, int timeout) {
@@ -215,10 +218,7 @@ std::string recvMessage(int fd, int timeout) {
 
         chunk = _read(fd);
         message += chunk;
-        if (message.back() == '\n') return message;
+        if (message.back() == '\n' || message.size() > MAX_MSG_SIZE)
+            return message;
     }
-}
-
-void sendMessage(int fd, const std::string& message) {
-    writen(fd, message.c_str(), message.size());
 }
