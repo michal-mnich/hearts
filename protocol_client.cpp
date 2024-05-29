@@ -20,12 +20,12 @@ void ClientProtocol::logMessage(std::string message, bool incoming) {
 
 void ClientProtocol::sendIAM(int fd, std::string seat) {
     std::string message = "IAM" + seat + "\r\n";
-    writen(fd, message.c_str(), message.size());
+    sendMessage(fd, message);
     logMessage(message, false);
 }
 
 void ClientProtocol::recvBUSY(int fd, std::string& taken) {
-    std::string message = readMessage(fd, -1);
+    std::string message = recvMessage(fd, -1);
     std::regex pattern("^BUSY[NESW]{1,4}\r\n$");
     if (!std::regex_match(message, pattern))
         throw Error("invalid BUSY message");
@@ -38,7 +38,7 @@ void ClientProtocol::recvDEAL(int fd,
                               uint8_t& type,
                               std::string& first,
                               std::string& cards) {
-    std::string message = readMessage(fd, -1);
+    std::string message = recvMessage(fd, -1);
     std::regex pattern("^DEAL[1-7][NESW]((?:(10|[2-9JQKA])[SHDC]){13})\r\n$");
     if (!std::regex_match(message, pattern))
         throw Error("invalid DEAL message");

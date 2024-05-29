@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 #include <string>
 
-#define QUEUE_SIZE  4
+#define QUEUE_SIZE 4
 
 void _close(int sock_fd);
 void _shutdown(int sock_fd, int how);
@@ -22,8 +22,7 @@ std::string _getAddressString(struct sockaddr_storage* addr);
 std::string getPeerAddress(int sock_fd);
 std::string getLocalAddress(int sock_fd);
 
-void writen(int fd, const void* vptr, size_t n);
-
-std::string readMessage(int fd, int timeout);
+std::string recvMessage(int fd, int timeout);
+void sendMessage(int fd, const std::string& message);
 
 #endif // NETWORK_COMMON_H

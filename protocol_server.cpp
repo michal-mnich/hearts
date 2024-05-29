@@ -22,7 +22,7 @@ void ServerProtocol::logMessage(int client_fd,
 }
 
 void ServerProtocol::recvIAM(int fd, std::string& seat) {
-    auto message = readMessage(fd, timeout);
+    auto message = recvMessage(fd, timeout);
     std::regex pattern("^IAM[NESW]\r\n$");
     if (!std::regex_match(message, pattern)) throw Error("invalid IAM message");
     logMessage(fd, message, true);
@@ -31,7 +31,7 @@ void ServerProtocol::recvIAM(int fd, std::string& seat) {
 
 void ServerProtocol::sendBUSY(int fd, std::string taken) {
     std::string message = "BUSY" + taken + "\r\n";
-    writen(fd, message.c_str(), message.size());
+    sendMessage(fd, message);
     logMessage(fd, message, false);
 }
 
@@ -41,7 +41,7 @@ void ServerProtocol::sendDEAL(int fd,
                               std::string cards) {
     std::string message =
         "DEAL" + std::to_string(type) + first + cards + "\r\n";
-    writen(fd, message.c_str(), message.size());
+    sendMessage(fd, message);
     logMessage(fd, message, false);
 }
 
@@ -50,14 +50,14 @@ void ServerProtocol::sendTRICK(int fd,
                                std::string cardsOnTable) {
     std::string message =
         "TRICK" + std::to_string(trick) + cardsOnTable + "\r\n";
-    writen(fd, message.c_str(), message.size());
+    sendMessage(fd, message);
     logMessage(fd, message, false);
 }
 
 void ServerProtocol::recvTRICK(int fd,
                                uint8_t& trick,
                                std::string& cardPlaced) {
-    auto message = readMessage(fd, timeout);
+    auto message = recvMessage(fd, timeout);
     std::regex pattern("^TRICK[1-7]((10|[2-9JQKA])[SHDC])\r\n$");
     if (!std::regex_match(message, pattern))
         throw Error("invalid TRICK message");

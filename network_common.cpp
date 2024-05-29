@@ -1,8 +1,14 @@
 #include "network_common.hpp"
 #include "error.hpp"
+#include <chrono>
 #include <netdb.h>
 #include <poll.h>
 #include <unistd.h>
+
+#define BUF_SIZE 1024
+#define MAX_MSG  100
+
+static char buffer[BUF_SIZE];
 
 /* System functions wrappers with error handling */
 
@@ -102,6 +108,23 @@ std::string _domainToString(int domain) {
     }
 }
 
+std::string _read(int fd) {
+    int nread;
+begin:
+    nread = read(fd, buffer, BUF_SIZE);
+    if (nread < 0 && errno == EINTR) {
+        goto begin;
+    }
+    if (nread < 0) {
+        throw Error("read");
+    }
+    if (nread == 0) {
+        throw Error("read (connection closed by peer)");
+    }
+    std::string res(buffer, nread);
+    return res;
+}
+
 std::string _getAddressString(struct sockaddr_storage* addr) {
     char ipStr[INET6_ADDRSTRLEN];
     std::string ip, port;
@@ -139,35 +162,6 @@ std::string getLocalAddress(int sock_fd) {
     return _getAddressString(&localAddr);
 }
 
-// Read n bytes from a descriptor
-void readn(int fd, void* vptr, size_t n) {
-    ssize_t nleft, nread;
-    char* ptr;
-
-    ptr = static_cast<char*>(vptr);
-    nleft = n;
-
-    while (nleft > 0) {
-        nread = read(fd, ptr, nleft);
-        if (nread < 0 && errno == EINTR) {
-            // interrupted by signal
-            continue;
-        }
-        if (nread < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            errno = 0;
-            throw Error("read (timeout)");
-        }
-        else if (nread < 0) {
-            throw Error("read");
-        }
-        else if (nread == 0) {
-            throw Error("read (connection closed by peer)");
-        }
-        nleft -= nread;
-        ptr += nread;
-    }
-}
-
 // Write n bytes to a descriptor
 void writen(int fd, const void* vptr, size_t n) {
     ssize_t nleft, nwritten;
@@ -188,39 +182,7 @@ void writen(int fd, const void* vptr, size_t n) {
     }
 }
 
-void socket_set_timeout(int socket_fd, unsigned int timeout) {
-    struct timeval to = {.tv_sec = timeout, .tv_usec = 0};
-    if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &to, sizeof to) < 0) {
-        throw Error("setsockopt (SO_RCVTIMEO)");
-    }
-}
-
-void socket_clear_timeout(int socket_fd) {
-    struct timeval to = {.tv_sec = 0, .tv_usec = 0};
-    if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &to, sizeof to) < 0) {
-        throw Error("setsockopt (SO_RCVTIMEO)");
-    }
-}
-
-std::string readUntilEnd(int fd) {
-    char buf;
-    std::string message;
-    while (true) {
-        readn(fd, &buf, 1);
-        message += buf;
-        if (buf == '\n') break;
-    }
-    return message;
-}
-
-#define BUF_SIZE 1024
-#define MAX_MSG  100
-
-#include <chrono>
-
-static char buffer[BUF_SIZE];
-
-void _pollInOne(int fd, int timeout) {
+void waitPollIn(int fd, int timeout) {
     struct pollfd pollfd;
     pollfd.fd = fd;
     pollfd.events = POLLIN;
@@ -236,40 +198,27 @@ void _pollInOne(int fd, int timeout) {
     }
 }
 
-std::string _read(int fd) {
-    int nread;
-begin:
-    nread = read(fd, buffer, BUF_SIZE);
-    if (nread < 0 && errno == EINTR) {
-        goto begin;
-    }
-    if (nread < 0) {
-        throw Error("read");
-    }
-    if (nread == 0) {
-        throw Error("read (connection closed by peer)");
-    }
-    std::string res(buffer, nread);
-    return res;
-}
-
-std::string readMessage(int fd, int timeout) {
+std::string recvMessage(int fd, int timeout) {
     std::string message, chunk;
     bool timeout_mode = (timeout != -1);
     if (timeout_mode) timeout *= 1000;
     while (true) {
         auto start = std::chrono::system_clock::now();
-        _pollInOne(fd, timeout);
+        waitPollIn(fd, timeout);
         auto end = std::chrono::system_clock::now();
 
         if (timeout_mode) {
             auto dur = duration_cast<std::chrono::milliseconds>(end - start);
             timeout -= dur.count();
-            if (timeout <= 0) throw Error("readMessage (timeout)");
+            if (timeout <= 0) throw Error("recvMessage (timeout)");
         }
 
         chunk = _read(fd);
         message += chunk;
         if (message.back() == '\n') return message;
     }
+}
+
+void sendMessage(int fd, const std::string& message) {
+    writen(fd, message.c_str(), message.size());
 }
