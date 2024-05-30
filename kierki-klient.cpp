@@ -10,12 +10,6 @@ int main(int argc, char** argv) {
         parser.parse();
         ClientConfig config = parser.getConfig();
 
-        debug("Host: " + config.host);
-        debug("Port: " + config.port);
-        debug("IP Version: " + _domainToString(config.domain));
-        debug("Seat: " + config.seat);
-        debug("Auto Player: " + std::string(config.auto_player ? "Yes" : "No"));
-
         Client client(config);
         client.connectToGame();
 

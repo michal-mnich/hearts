@@ -5,8 +5,6 @@
 #include "protocol_server.hpp"
 #include <fstream>
 #include <iostream>
-#include <poll.h>
-#include <sstream>
 
 void Server::parseFile(const std::string& filename) {
     std::ifstream file(filename);
@@ -16,19 +14,20 @@ void Server::parseFile(const std::string& filename) {
         Deal deal;
 
         deal.type = line[0] - '0';
-        deal.first = line.substr(1, 1);
+        deal.firstPlayer = line.substr(1, 1);
+        deal.currentPlayer = deal.firstPlayer;
 
         std::getline(file, line);
-        deal.cards["N"] = line;
+        deal.hand["N"] = line;
 
         std::getline(file, line);
-        deal.cards["E"] = line;
+        deal.hand["E"] = line;
 
         std::getline(file, line);
-        deal.cards["S"] = line;
+        deal.hand["S"] = line;
 
         std::getline(file, line);
-        deal.cards["W"] = line;
+        deal.hand["W"] = line;
 
         deals.push_back(deal);
     }
@@ -36,20 +35,20 @@ void Server::parseFile(const std::string& filename) {
 
 Server::Server(ServerConfig& config)
     : networker(config.port), protocol(&networker, config.timeout),
-      game_over(false), table(4) {
+      game_over(false), table(4), next(0) {
     parseFile(config.file);
 }
 
 void Server::start() {
-    int i = 1;
-    for (const auto& deal : deals) {
-        debug("Starting deal " + std::to_string(i) + "...");
+    for (unsigned int i = 0; i < deals.size(); i++) {
+        debug("Starting deal " + std::to_string(i + 1) + "...");
+        currentDeal = &deals[i];
 
         debug("Starting accept thread...");
         auto accept_thread = std::thread(&Server::acceptThread, this);
 
         debug("Starting game thread...");
-        auto game_thread = std::thread(&Server::gameThread, this, deal);
+        auto game_thread = std::thread(&Server::gameThread, this, currentDeal);
         game_thread.join();
 
         debug("Game over!");
@@ -63,8 +62,7 @@ void Server::start() {
         networker.joinClients();
         debug("All clients threads stopped!");
 
-        debug("Deal " + std::to_string(i) + " finished!");
-        i++;
+        debug("Deal " + std::to_string(i + 1) + " finished!");
         break;
     }
 }
@@ -78,27 +76,49 @@ void Server::acceptThread() {
 void Server::playerThread(int fd) {
     std::string seat;
 
-    do {
+    try {
+        seat = handleIAM(fd);
+    }
+    catch (Error& e) {
+        std::cerr << e.what() << std::endl;
+        goto disconnect;
+    }
+
+    debug("Player " + seat + " is ready!");
+    table.arrive_and_wait();
+
+    while (true) {
         try {
-            seat = handleIAM(fd);
+            handleTRICK(fd);
         }
         catch (Error& e) {
-            std::cerr << e.what() << std::endl;
-            break;
+            if (seat == currentDeal->currentPlayer) {
+                std::cerr << e.what() << std::endl;
+                goto disconnect;
+            }
         }
-        debug("Player " + seat + " is ready!");
-        table.arrive_and_wait();
-        sleep(10);
-    } while (0);
+    }
 
+disconnect:
     networker.removeClient(fd);
 }
 
-void Server::gameThread(Deal deal) {
+void Server::gameThread(Deal* deal) {
     table.wait();
     debug("All players are ready!");
     for (const auto& [seat, fd] : players) {
-        protocol.sendDEAL(fd, deal.type, deal.first, deal.cards[seat]);
+        protocol.sendDEAL(fd, deal->type, deal->firstPlayer, deal->hand[seat]);
+    }
+
+    while (deal->currentTrick < 13) {
+        if (deal->currentPlayer == deal->firstPlayer) {
+            deal->currentTrick++;
+        }
+        protocol.sendTRICK(players[deal->currentPlayer],
+                           deal->currentTrick,
+                           deal->cardsOnTable);
+        next.acquire();
+        deal->getNextPlayer(deal->currentPlayer);
     }
 }
 
@@ -118,4 +138,12 @@ std::string Server::handleIAM(int fd) {
     }
 
     return seat;
+}
+
+void Server::handleTRICK(int fd) {
+    uint8_t trick;
+    std::string cardPlaced;
+    protocol.recvTRICK(fd, &trick, cardPlaced);
+    currentDeal->cardsOnTable += cardPlaced;
+    next.release();
 }

@@ -10,11 +10,24 @@ Client::Client(ClientConfig& config)
 
 void Client::connectToGame() {
     try {
-        protocol.sendIAM(networker.sock_fd, seat);
+        int fd = networker.sock_fd;
+
+        protocol.sendIAM(fd, seat);
 
         uint8_t type;
         std::string first, cards;
-        protocol.recvDEAL(networker.sock_fd, type, first, cards);
+        protocol.recvDEAL(fd, type, first, cards);
+        uint8_t trick;
+        std::string cardsOnTable;
+        while (true) {
+            protocol.recvTRICK(fd, &trick, cardsOnTable);
+            std::cout << "Trick " << (int)trick << ": " << cardsOnTable
+                      << std::endl;
+            std::cout << "Enter your card: ";
+            std::string card;
+            std::cin >> card;
+            protocol.sendTRICK(fd, trick, card);
+        }
     }
     catch (Error& e) {
         std::cerr << e.what() << std::endl;

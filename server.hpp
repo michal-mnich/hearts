@@ -2,19 +2,15 @@
 #define SERVER_H
 
 #include "arg_parser.hpp"
+#include "game.hpp"
 #include "network_server.hpp"
 #include "protocol_server.hpp"
 #include <condition_variable>
 #include <latch>
 #include <map>
+#include <semaphore>
 
 #define QUEUE_SIZE 4
-
-struct Deal {
-    uint8_t type;
-    std::string first;
-    std::map<std::string, std::string> cards; // seat, cards
-};
 
 class Server {
 public:
@@ -31,12 +27,15 @@ private:
     std::map<std::string, int> players;
 
     std::latch table;
+    std::binary_semaphore next;
 
+    Deal* currentDeal;
     std::vector<Deal> deals;
 
-    void gameThread(Deal deal);
+    void gameThread(Deal* deal);
     void acceptThread();
     std::string handleIAM(int fd);
+    void handleTRICK(int fd);
     void parseFile(const std::string& file);
 
 public:

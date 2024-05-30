@@ -9,10 +9,6 @@ int main(int argc, char** argv) {
         parser.parse();
         ServerConfig config = parser.getConfig();
 
-        debug("Port: " + std::to_string(config.port));
-        debug("File: " + config.file);
-        debug("Timeout: " + std::to_string(config.timeout));
-
         Server server(config);
         server.start();
 

@@ -24,7 +24,8 @@ void ServerProtocol::logMessage(int client_fd,
 void ServerProtocol::recvIAM(int fd, std::string& seat) {
     auto message = recvMessage(fd, timeout);
     std::regex pattern("^IAM[NESW]\r\n$");
-    if (!std::regex_match(message, pattern)) throw Error("invalid IAM message");
+    if (!std::regex_match(message, pattern))
+        throw Error("invalid IAM message: " + message);
     logMessage(fd, message, true);
     seat = message.substr(3, 1);
 }
@@ -55,13 +56,13 @@ void ServerProtocol::sendTRICK(int fd,
 }
 
 void ServerProtocol::recvTRICK(int fd,
-                               uint8_t& trick,
+                               uint8_t* trick,
                                std::string& cardPlaced) {
     auto message = recvMessage(fd, timeout);
     std::regex pattern("^TRICK[1-7]((10|[2-9JQKA])[SHDC])\r\n$");
     if (!std::regex_match(message, pattern))
-        throw Error("invalid TRICK message");
+        throw Error("invalid TRICK message: " + message);
     logMessage(fd, message, true);
-    trick = message[5] - '0';
+    *trick = message[5] - '0';
     cardPlaced = message.substr(6, 2);
 }

@@ -5,7 +5,7 @@
 #include <poll.h>
 #include <unistd.h>
 
-#define BUF_SIZE 1024
+#define BUF_SIZE 1
 #define MAX_MSG_SIZE 64
 
 /* System functions wrappers with error handling */
@@ -195,7 +195,7 @@ begin:
         throw Error("read");
     }
     if (nread == 0) {
-        throw Error("read (connection closed by peer)");
+        throw Error("read (EOF)");
     }
     std::string res(buffer, nread);
     return res;
