@@ -2,7 +2,7 @@
 #define PROTOCOL_CLIENT_H
 
 #include "network_client.hpp"
-#include <inttypes.h>
+#include <cstdint>
 
 class ClientProtocol {
 private:

@@ -64,5 +64,8 @@ void ServerProtocol::recvTRICK(int fd,
         throw Error("invalid TRICK message: " + message);
     logMessage(fd, message, true);
     *trick = message[5] - '0';
-    cardPlaced = message.substr(6, 2);
+    if (message[6] == '1')
+        cardPlaced = message.substr(6, 3);
+    else
+        cardPlaced = message.substr(6, 2);
 }

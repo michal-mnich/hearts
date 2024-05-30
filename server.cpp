@@ -106,6 +106,7 @@ disconnect:
 void Server::gameThread(Deal* deal) {
     table.wait();
     debug("All players are ready!");
+
     for (const auto& [seat, fd] : players) {
         protocol.sendDEAL(fd, deal->type, deal->firstPlayer, deal->hand[seat]);
     }
@@ -118,7 +119,7 @@ void Server::gameThread(Deal* deal) {
                            deal->currentTrick,
                            deal->cardsOnTable);
         next.acquire();
-        deal->getNextPlayer(deal->currentPlayer);
+        deal->nextPlayer();
     }
 }
 
