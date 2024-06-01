@@ -22,6 +22,8 @@ std::string _getAddressString(struct sockaddr_storage* addr);
 std::string getPeerAddress(int sock_fd);
 std::string getLocalAddress(int sock_fd);
 
+void waitPollIn(int fd, int timeout);
+
 std::string recvMessage(int fd, int timeout);
 void sendMessage(int fd, const std::string& message);
 

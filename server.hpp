@@ -5,10 +5,9 @@
 #include "game.hpp"
 #include "network_server.hpp"
 #include "protocol_server.hpp"
-#include <condition_variable>
+#include "common.hpp"
 #include <latch>
 #include <map>
-#include <semaphore>
 
 #define QUEUE_SIZE 4
 
@@ -27,15 +26,15 @@ private:
     std::map<std::string, int> players;
 
     std::latch table;
-    std::binary_semaphore next;
+    SimpleCV cv;
 
     Deal* currentDeal;
     std::vector<Deal> deals;
 
-    void gameThread(Deal* deal);
+    void gameThread();
     void acceptThread();
     std::string handleIAM(int fd);
-    void handleTRICK(int fd);
+    void handleTRICK(int fd, std::string& seat);
     void parseFile(const std::string& file);
 
 public:

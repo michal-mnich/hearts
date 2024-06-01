@@ -1,5 +1,4 @@
 #include "server.hpp"
-#include "common.hpp"
 #include "error.hpp"
 #include "network_common.hpp"
 #include "protocol_server.hpp"
@@ -35,7 +34,7 @@ void Server::parseFile(const std::string& filename) {
 
 Server::Server(ServerConfig& config)
     : networker(config.port), protocol(&networker, config.timeout),
-      game_over(false), table(4), next(0) {
+      game_over(false), table(4) {
     parseFile(config.file);
 }
 
@@ -48,7 +47,7 @@ void Server::start() {
         auto accept_thread = std::thread(&Server::acceptThread, this);
 
         debug("Starting game thread...");
-        auto game_thread = std::thread(&Server::gameThread, this, currentDeal);
+        auto game_thread = std::thread(&Server::gameThread, this);
         game_thread.join();
 
         debug("Game over!");
@@ -89,11 +88,20 @@ void Server::playerThread(int fd) {
 
     while (true) {
         try {
-            handleTRICK(fd);
+            handleTRICK(fd, seat);
         }
         catch (Error& e) {
+            std::string error(e.what());
+            std::cerr << error << std::endl;
             if (seat == currentDeal->currentPlayer) {
-                std::cerr << e.what() << std::endl;
+                if (isSubstring(error, "invalid TRICK message")) {
+                    // protocol.sendWRONG(fd);
+                }
+                else {
+                    goto disconnect;
+                }
+            }
+            else {
                 goto disconnect;
             }
         }
@@ -103,23 +111,35 @@ disconnect:
     networker.removeClient(fd);
 }
 
-void Server::gameThread(Deal* deal) {
+void Server::gameThread() {
     table.wait();
     debug("All players are ready!");
 
     for (const auto& [seat, fd] : players) {
-        protocol.sendDEAL(fd, deal->type, deal->firstPlayer, deal->hand[seat]);
+        protocol.sendDEAL(fd,
+                          currentDeal->type,
+                          currentDeal->firstPlayer,
+                          currentDeal->hand[seat]);
     }
 
-    while (deal->currentTrick < 13) {
-        if (deal->currentPlayer == deal->firstPlayer) {
-            deal->currentTrick++;
+    while (currentDeal->currentTrick < 13) {
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            if (currentDeal->currentPlayer == currentDeal->firstPlayer) {
+                currentDeal->currentTrick++;
+            }
         }
-        protocol.sendTRICK(players[deal->currentPlayer],
-                           deal->currentTrick,
-                           deal->cardsOnTable);
-        next.acquire();
-        deal->nextPlayer();
+
+        do {
+            protocol.sendTRICK(players[currentDeal->currentPlayer],
+                               currentDeal->currentTrick,
+                               currentDeal->cardsOnTable);
+        } while (!cv.wait_for(protocol.timeout));
+
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            currentDeal->nextPlayer();
+        }
     }
 }
 
@@ -134,17 +154,25 @@ std::string Server::handleIAM(int fd) {
     }
     else {
         players[seat] = fd;
-        debug("Seat " + seat + " taken by client " +
-              networker.getClientInfo(fd).second);
     }
 
     return seat;
 }
 
-void Server::handleTRICK(int fd) {
+void Server::handleTRICK(int fd, std::string& seat) {
     uint8_t trick;
     std::string cardPlaced;
     protocol.recvTRICK(fd, &trick, cardPlaced);
-    currentDeal->cardsOnTable += cardPlaced;
-    next.release();
+
+    if (currentDeal->currentPlayer == seat) {
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            currentDeal->cardsOnTable += cardPlaced;
+        }
+        cv.notify();
+    }
+    else {
+        // unwanted client sent valid TRICK
+        protocol.sendWRONG(fd, trick);
+    }
 }

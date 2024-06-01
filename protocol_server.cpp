@@ -2,6 +2,7 @@
 #include "common.hpp"
 #include "error.hpp"
 #include "network_common.hpp"
+#include <condition_variable>
 #include <iostream>
 #include <regex>
 #include <signal.h>
@@ -58,14 +59,17 @@ void ServerProtocol::sendTRICK(int fd,
 void ServerProtocol::recvTRICK(int fd,
                                uint8_t* trick,
                                std::string& cardPlaced) {
-    auto message = recvMessage(fd, timeout);
+    auto message = recvMessage(fd, -1);
     std::regex pattern("^TRICK[1-7]((10|[2-9JQKA])[SHDC])\r\n$");
     if (!std::regex_match(message, pattern))
         throw Error("invalid TRICK message: " + message);
     logMessage(fd, message, true);
     *trick = message[5] - '0';
-    if (message[6] == '1')
-        cardPlaced = message.substr(6, 3);
-    else
-        cardPlaced = message.substr(6, 2);
+    cardPlaced = message.substr(6, message.size() - 8);
+}
+
+void ServerProtocol::sendWRONG(int fd, uint8_t trick) {
+    std::string message = "WRONG" + std::to_string(trick) + "\r\n";
+    sendMessage(fd, message);
+    logMessage(fd, message, false);
 }

@@ -45,12 +45,12 @@ void ClientProtocol::recvDEAL(int fd,
     logMessage(message, true);
     type = message[4] - '0';
     first = message[5];
-    cards = message.substr(6, 26);
+    cards = message.substr(6, message.size() - 8);
 }
 
 void ClientProtocol::recvTRICK(int fd, uint8_t* trick, std::string& cardsOnTable) {
     std::string message = recvMessage(fd, -1);
-    std::regex pattern("^TRICK[1-7]((?:(10|[2-9JQKA])[SHDC]){0,50})\r\n$");
+    std::regex pattern("^TRICK[1-7]((?:(10|[2-9JQKA])[SHDC]){0,52})\r\n$");
     if (!std::regex_match(message, pattern))
         throw Error("invalid TRICK message: " + message);
     logMessage(message, true);

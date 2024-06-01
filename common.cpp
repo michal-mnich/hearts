@@ -1,7 +1,7 @@
 #include "common.hpp"
 #include <chrono>
-#include <random>
 #include <map>
+#include <random>
 
 bool isSubstring(const std::string& s1, const std::string& s2) {
     return s1.find(s2) != std::string::npos;
@@ -41,4 +41,34 @@ std::string getKeys(std::map<std::string, int>& map) {
         keys += key;
     }
     return keys;
+}
+
+std::string getPrettyCards(const std::string& cardString) {
+    std::string result;
+    std::string rank;
+    char suit;
+
+    for (size_t i = 0; i < cardString.size(); ++i) {
+        if (std::isdigit(cardString[i])) {
+            rank += cardString[i];
+        }
+        else {
+            if (rank.empty() || rank == "1") {
+                rank += cardString[i];
+                continue;
+            }
+            suit = cardString[i];
+            result += rank + suit;
+            if (i != cardString.size() - 1) {
+                result += ", ";
+            }
+            rank.clear();
+        }
+    }
+
+    if (result.empty()) {
+        result = "None";
+    }
+
+    return result;
 }

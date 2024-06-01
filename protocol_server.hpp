@@ -7,10 +7,11 @@
 class ServerProtocol {
 private:
     ServerNetworker* networker;
-    unsigned int timeout;
 
     void logMessage(int client_fd, std::string message, bool incoming);
+
 public:
+    unsigned int timeout;
     ServerProtocol(ServerNetworker* networker, unsigned int timeout);
 
     void recvIAM(int fd, std::string& seat);
@@ -18,7 +19,7 @@ public:
     void sendDEAL(int fd, uint8_t type, std::string first, std::string cards);
     void sendTRICK(int fd, uint8_t trick, std::string cardsOnTable);
     void recvTRICK(int fd, uint8_t* trick, std::string& cardPlaced);
-    void sendWRONG();
+    void sendWRONG(int fd, uint8_t trick);
     void sendTAKEN();
     void sendSCORE();
     void sendTOTAL();
