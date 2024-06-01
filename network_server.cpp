@@ -64,9 +64,10 @@ void ServerNetworker::stopAccepting() {
 
 void ServerNetworker::disconnectOne(int fd) {
     std::lock_guard<std::mutex> lock(mtx);
-    if (!allDisconnected) {
+    if (!disconnected.contains(fd)) {
         debug("Shutting down client socket...");
         _shutdown(fd, SHUT_RDWR);
+        disconnected.insert(fd);
     }
 }
 
@@ -74,9 +75,13 @@ void ServerNetworker::disconnectAll() {
     std::lock_guard<std::mutex> lock(mtx);
     debug("Shutting down all client sockets...");
     for (auto c : clients) {
-        _shutdown(c.first, SHUT_RDWR);
+        int fd = c.first;
+        if (!disconnected.contains(fd)) {
+            _shutdown(fd, SHUT_RDWR);
+            disconnected.insert(fd);
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
     }
-    allDisconnected = true;
 }
 
 void ServerNetworker::joinClients() {

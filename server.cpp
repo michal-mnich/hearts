@@ -121,7 +121,7 @@ void Server::gameThread() {
                           currentDeal->hand[seat]);
     }
 
-    while (currentDeal->currentTrick < 3) {
+    while (currentDeal->currentTrick < 5) {
         if (currentDeal->currentPlayer == currentDeal->firstPlayer) {
             currentDeal->currentTrick++;
         }
@@ -132,7 +132,6 @@ void Server::gameThread() {
                 protocol.sendTRICK(fd,
                                    currentDeal->currentTrick,
                                    currentDeal->cardsOnTable);
-                askedTRICK = fd;
             }
             catch (Error& e) {
                 std::string message = e.what();
@@ -144,10 +143,10 @@ void Server::gameThread() {
                 // }
                 std::cerr << message << std::endl;
             }
+            askedTRICK = fd;
         } while (!cv_TRICK.wait_for(lock,
                                     std::chrono::seconds(protocol.timeout),
                                     [this] { return askedTRICK == -1; }));
-
         currentDeal->nextPlayer();
     }
 }
