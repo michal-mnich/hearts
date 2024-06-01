@@ -27,13 +27,13 @@ void Client::connectToGame() {
         }
         catch (Error& e) {
             std::string message = e.what();
-            std::cerr << message << std::flush;
-            if (isSubstring(message, "invalid TRICK message")) {
+            if (isSubstring(message, "WRONG")) {
+                std::cerr << message << std::flush;
                 hand.append(playedCard);
                 continue;
             }
             else {
-                break;
+                throw e;
             }
         }
 

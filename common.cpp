@@ -73,22 +73,6 @@ std::string getPrettyCards(const std::string& cardString) {
     return result;
 }
 
-void SimpleCV::notify() {
-    std::unique_lock<std::mutex> lock(mtx);
-    notified = true;
-    cv.notify_one();
-}
-
-bool SimpleCV::wait_for(unsigned int timeout) {
-    auto duration = std::chrono::seconds(timeout);
-    std::unique_lock<std::mutex> lock(mtx);
-    if (cv.wait_for(lock, duration, [this] { return notified; })) {
-        notified = false;
-        return true;
-    }
-    return false;
-}
-
 void ReadersWriters::startRead() {
     std::unique_lock<std::mutex> lock(mtx);
     cv.wait(lock, [this] { return !writer_active && waiting_writers == 0; });

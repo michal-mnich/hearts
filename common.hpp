@@ -14,18 +14,6 @@ std::string getRandomSeat();
 std::string getKeys(std::map<std::string, int>& map);
 std::string getPrettyCards(const std::string& cardString);
 
-class SimpleCV {
-private:
-    std::mutex mtx;
-    std::condition_variable cv;
-    bool notified = false;
-
-public:
-    SimpleCV();
-    void notify();
-    bool wait_for(unsigned int timeout);
-};
-
 class ReadersWriters {
 private:
     std::mutex mtx;

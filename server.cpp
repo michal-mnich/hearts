@@ -34,7 +34,7 @@ void Server::parseFile(const std::string& filename) {
 
 Server::Server(ServerConfig& config)
     : networker(config.port), protocol(&networker, config.timeout),
-      game_over(false), table(4) {
+      game_over(false) {
     parseFile(config.file);
 }
 
@@ -84,11 +84,10 @@ void Server::playerThread(int fd) {
     }
 
     debug("Player " + seat + " is ready!");
-    table.arrive_and_wait();
 
     while (true) {
         try {
-            handleTRICK(fd, seat);
+            handleTRICK(fd);
         }
         catch (Error& e) {
             std::string error(e.what());
@@ -112,7 +111,9 @@ disconnect:
 }
 
 void Server::gameThread() {
-    table.wait();
+    std::unique_lock<std::mutex> lock(mtx);
+    cv_allplayers.wait(lock, [this] { return players.size() == 4; });
+
     debug("All players are ready!");
 
     for (const auto& [seat, fd] : players) {
@@ -123,25 +124,22 @@ void Server::gameThread() {
     }
 
     while (currentDeal->currentTrick < 13) {
-        int fd;
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-            if (currentDeal->currentPlayer == currentDeal->firstPlayer) {
-                currentDeal->currentTrick++;
-            }
-            fd = players[currentDeal->currentPlayer];
+        if (currentDeal->currentPlayer == currentDeal->firstPlayer) {
+            currentDeal->currentTrick++;
         }
+        int fd = players[currentDeal->currentPlayer];
 
         do {
             protocol.sendTRICK(fd,
                                currentDeal->currentTrick,
                                currentDeal->cardsOnTable);
-        } while (!cv.wait_for(protocol.timeout));
+            askedTRICK = fd;
+        } while (!cv_TRICK.wait_for(
+            lock,
+            std::chrono::seconds(protocol.timeout),
+            [this] { return askedTRICK == -1; }));
 
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-            currentDeal->nextPlayer();
-        }
+        currentDeal->nextPlayer();
     }
 }
 
@@ -149,31 +147,40 @@ std::string Server::handleIAM(int fd) {
     std::string seat;
     protocol.recvIAM(fd, seat);
 
-    std::lock_guard<std::mutex> lock(mtx);
+    std::unique_lock<std::mutex> lock(mtx);
+
     if (players.contains(seat)) {
-        protocol.sendBUSY(fd, getKeys(players));
+        std::string activePlayers = getKeys(players);
+        lock.unlock();
+        protocol.sendBUSY(fd, activePlayers);
         throw Error("seat " + seat + " already taken");
     }
     else {
         players[seat] = fd;
+        if (players.size() == 4) {
+            cv_allplayers.notify_one();
+        }
+        lock.unlock();
     }
 
     return seat;
 }
 
-void Server::handleTRICK(int fd, std::string& seat) {
+void Server::handleTRICK(int fd) {
     uint8_t trick;
     std::string cardPlaced;
     protocol.recvTRICK(fd, &trick, cardPlaced);
 
-    if (currentDeal->currentPlayer == seat) {
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-            currentDeal->cardsOnTable += cardPlaced;
-        }
-        cv.notify();
+    std::unique_lock<std::mutex> lock(mtx);
+
+    if (askedTRICK == fd) {
+        currentDeal->cardsOnTable += cardPlaced;
+        askedTRICK = -1;
+        cv_TRICK.notify_one();
+        lock.unlock();
     }
     else {
+        lock.unlock();
         // unwanted client sent valid TRICK
         protocol.sendWRONG(fd, trick);
     }

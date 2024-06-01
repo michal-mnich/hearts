@@ -8,6 +8,7 @@
 #include "common.hpp"
 #include <latch>
 #include <map>
+#include <condition_variable>
 
 #define QUEUE_SIZE 4
 
@@ -23,10 +24,11 @@ private:
     std::atomic<bool> game_over;
 
     std::mutex mtx;
-    std::map<std::string, int> players;
+    std::condition_variable cv_TRICK;
+    std::condition_variable cv_allplayers;
 
-    std::latch table;
-    SimpleCV cv;
+    std::map<std::string, int> players;
+    int askedTRICK;
 
     Deal* currentDeal;
     std::vector<Deal> deals;
@@ -34,7 +36,7 @@ private:
     void gameThread();
     void acceptThread();
     std::string handleIAM(int fd);
-    void handleTRICK(int fd, std::string& seat);
+    void handleTRICK(int fd);
     void parseFile(const std::string& file);
 
 public:
