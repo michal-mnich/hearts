@@ -107,7 +107,7 @@ void Server::playerThread(int fd) {
     }
 
 disconnect:
-    networker.removeClient(fd);
+    networker.disconnectOne(fd);
 }
 
 void Server::gameThread() {
@@ -138,12 +138,13 @@ void Server::gameThread() {
             }
             catch (Error& e) {
                 std::string message = e.what();
-                if (isSubstring(message, "would block")) {
-                    std::cerr << message << std::endl;
-                }
-                else {
-                    throw e;
-                }
+                // if (isSubstring(message, "would block")) {
+                //     std::cerr << message << std::endl;
+                // }
+                // else {
+                //     throw e;
+                // }
+                std::cerr << message << std::endl;
             }
         } while (!cv_TRICK.wait_for(lock,
                                     std::chrono::seconds(protocol.timeout),

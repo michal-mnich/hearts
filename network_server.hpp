@@ -26,7 +26,7 @@ public:
     void startAccepting(Server* server);
     void stopAccepting();
     void disconnectAll();
-    void removeClient(int fd);
+    void disconnectOne(int fd);
     std::pair<std::string, std::string> getClientInfo(int client_fd);
     void joinClients();
 };

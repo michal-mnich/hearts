@@ -62,16 +62,15 @@ void ServerNetworker::stopAccepting() {
     _shutdown(ipv6_fd, SHUT_RDWR);
 }
 
-void ServerNetworker::removeClient(int fd) {
+void ServerNetworker::disconnectOne(int fd) {
     std::lock_guard<std::mutex> lock(mtx);
-    debug("Closing client socket...");
-    _close(fd);
-    clients.erase(fd);
+    debug("Shutting down client socket...");
+    _shutdown(fd, SHUT_RDWR);
 }
 
 void ServerNetworker::disconnectAll() {
     std::lock_guard<std::mutex> lock(mtx);
-    debug("Shutting down client sockets...");
+    debug("Shutting down all client sockets...");
     for (auto c : clients)
         _shutdown(c.first, SHUT_RDWR);
 }
@@ -89,6 +88,9 @@ ServerNetworker::~ServerNetworker() {
     debug("Closing listening sockets...");
     _close(ipv4_fd);
     _close(ipv6_fd);
+    debug("Closing all client sockets...");
+    for (auto c : clients)
+        _close(c.first);
 }
 
 std::pair<std::string, std::string>

@@ -159,6 +159,9 @@ void writen(int fd, const void* vptr, size_t n) {
         else if (nwritten < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
             throw Error("write (would block)");
         }
+        else if (nwritten < 0 && errno == EPIPE) {
+            throw Error("write (connection closed by peer)");
+        }
         else if (nwritten < 0) {
             throw Error("write");
         }
@@ -213,7 +216,7 @@ begin:
         throw Error("read");
     }
     if (nread == 0) {
-        throw Error("read (EOF)");
+        throw Error("read (connection closed by peer)");
     }
     std::string res(buffer, nread);
     return res;
@@ -243,14 +246,14 @@ std::string recvMessage(int fd, int timeout) {
 
 void setNonBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
-    if (flags < 0) throw Error("fcntl (F_GETFL)");
+    if (flags < 0) throw Error("fcntl (setNonBlocking)");
     if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0)
         throw Error("fcntl (F_SETFL)");
 }
 
 void unsetNonBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
-    if (flags < 0) throw Error("fcntl (F_GETFL)");
+    if (flags < 0) throw Error("fcntl (unsetNonBlocking)");
     if (fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) < 0)
         throw Error("fcntl (F_SETFL)");
 }
