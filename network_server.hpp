@@ -15,6 +15,7 @@ private:
     int ipv6_fd;
     struct sockaddr_in ipv4_addr;
     struct sockaddr_in6 ipv6_addr;
+    bool allDisconnected = false;
 
     std::mutex mtx;
     std::unordered_map<int, std::pair<std::string, std::string>> clients;

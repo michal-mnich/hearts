@@ -83,8 +83,6 @@ void Server::playerThread(int fd) {
         goto disconnect;
     }
 
-    debug("Player " + seat + " is ready!");
-
     while (true) {
         try {
             handleTRICK(fd);
@@ -123,7 +121,7 @@ void Server::gameThread() {
                           currentDeal->hand[seat]);
     }
 
-    while (currentDeal->currentTrick < 13) {
+    while (currentDeal->currentTrick < 3) {
         if (currentDeal->currentPlayer == currentDeal->firstPlayer) {
             currentDeal->currentTrick++;
         }
