@@ -1,11 +1,11 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include <string>
+#include <chrono>
+#include <condition_variable>
 #include <map>
 #include <mutex>
-#include <condition_variable>
-#include <chrono>
+#include <string>
 
 bool isSubstring(const std::string& s1, const std::string& s2);
 std::string createTimestamp();
@@ -18,26 +18,27 @@ class SimpleCV {
 private:
     std::mutex mtx;
     std::condition_variable cv;
-    bool notified;
+    bool notified = false;
 
 public:
-    SimpleCV() : notified(false) {}
+    SimpleCV();
+    void notify();
+    bool wait_for(unsigned int timeout);
+};
 
-    void notify() {
-        std::unique_lock<std::mutex> lock(mtx);
-        notified = true;
-        cv.notify_one();
-    }
+class ReadersWriters {
+private:
+    std::mutex mtx;
+    std::condition_variable cv;
+    int reader_count = 0;
+    bool writer_active = false;
+    int waiting_writers = 0;
 
-    bool wait_for(unsigned int timeout) {
-        auto duration = std::chrono::seconds(timeout);
-        std::unique_lock<std::mutex> lock(mtx);
-        if (cv.wait_for(lock, duration, [this] { return notified; })) {
-            notified = false;
-            return true;
-        }
-        return false;
-    }
+public:
+    void startRead();
+    void endRead();
+    void startWrite();
+    void endWrite();
 };
 
 #endif // COMMON_H
