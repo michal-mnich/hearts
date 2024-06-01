@@ -123,15 +123,17 @@ void Server::gameThread() {
     }
 
     while (currentDeal->currentTrick < 13) {
+        int fd;
         {
             std::lock_guard<std::mutex> lock(mtx);
             if (currentDeal->currentPlayer == currentDeal->firstPlayer) {
                 currentDeal->currentTrick++;
             }
+            fd = players[currentDeal->currentPlayer];
         }
 
         do {
-            protocol.sendTRICK(players[currentDeal->currentPlayer],
+            protocol.sendTRICK(fd,
                                currentDeal->currentTrick,
                                currentDeal->cardsOnTable);
         } while (!cv.wait_for(protocol.timeout));
