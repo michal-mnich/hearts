@@ -130,14 +130,24 @@ void Server::gameThread() {
         int fd = players[currentDeal->currentPlayer];
 
         do {
-            protocol.sendTRICK(fd,
-                               currentDeal->currentTrick,
-                               currentDeal->cardsOnTable);
-            askedTRICK = fd;
-        } while (!cv_TRICK.wait_for(
-            lock,
-            std::chrono::seconds(protocol.timeout),
-            [this] { return askedTRICK == -1; }));
+            try {
+                protocol.sendTRICK(fd,
+                                   currentDeal->currentTrick,
+                                   currentDeal->cardsOnTable);
+                askedTRICK = fd;
+            }
+            catch (Error& e) {
+                std::string message = e.what();
+                if (isSubstring(message, "would block")) {
+                    std::cerr << message << std::endl;
+                }
+                else {
+                    throw e;
+                }
+            }
+        } while (!cv_TRICK.wait_for(lock,
+                                    std::chrono::seconds(protocol.timeout),
+                                    [this] { return askedTRICK == -1; }));
 
         currentDeal->nextPlayer();
     }

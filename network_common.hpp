@@ -23,8 +23,12 @@ std::string getPeerAddress(int sock_fd);
 std::string getLocalAddress(int sock_fd);
 
 void waitPollIn(int fd, int timeout);
+void waitPollOut(int fd);
 
 std::string recvMessage(int fd, int timeout);
 void sendMessage(int fd, const std::string& message);
+
+void setNonBlocking(int fd);
+void unsetNonBlocking(int fd);
 
 #endif // NETWORK_COMMON_H

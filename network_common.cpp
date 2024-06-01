@@ -4,6 +4,7 @@
 #include <netdb.h>
 #include <poll.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define BUF_SIZE 1
 #define MAX_MSG_SIZE 64
@@ -155,6 +156,9 @@ void writen(int fd, const void* vptr, size_t n) {
         if (nwritten < 0 && errno == EINTR) {
             continue;
         }
+        else if (nwritten < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            throw Error("write (would block)");
+        }
         else if (nwritten < 0) {
             throw Error("write");
         }
@@ -181,6 +185,20 @@ void waitPollIn(int fd, int timeout) {
     if (!(pollfd.revents & POLLIN)) {
         throw Error("poll (revents)");
     }
+}
+
+void waitPollOut(int fd) {
+    struct pollfd pollfd;
+    pollfd.fd = fd;
+    pollfd.events = POLLOUT;
+    int ret = poll(&pollfd, 1, -1);
+    if (ret < 0) {
+        throw Error("poll");
+    }
+    if (!(pollfd.revents & POLLOUT)) {
+        throw Error("poll (revents)");
+    }
+
 }
 
 std::string _read(int fd) {
@@ -221,4 +239,18 @@ std::string recvMessage(int fd, int timeout) {
         if (message.back() == '\n' || message.size() > MAX_MSG_SIZE)
             return message;
     }
+}
+
+void setNonBlocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0) throw Error("fcntl (F_GETFL)");
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0)
+        throw Error("fcntl (F_SETFL)");
+}
+
+void unsetNonBlocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0) throw Error("fcntl (F_GETFL)");
+    if (fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) < 0)
+        throw Error("fcntl (F_SETFL)");
 }
