@@ -26,32 +26,6 @@ void ClientProtocol::sendIAM(int fd, std::string seat) {
     logMessage(message, false);
 }
 
-void ClientProtocol::recvBUSY(int fd, std::string& taken) {
-    std::string message = recvMessage(fd, -1);
-    if (!tryParseBUSY(message, taken))
-        throw Error("invalid BUSY message: " + message);
-    logMessage(message, true);
-}
-
-void ClientProtocol::recvDEAL(int fd,
-                              uint8_t& type,
-                              std::string& first,
-                              std::string& cards) {
-    std::string message = recvMessage(fd, -1);
-    if (!tryParseDEAL(message, type, first, cards))
-        throw Error("invalid DEAL message: " + message);
-    logMessage(message, true);
-}
-
-void ClientProtocol::recvTRICK(int fd,
-                               uint8_t& trick,
-                               std::string& cardsOnTable) {
-    std::string message = recvMessage(fd, -1);
-    if (!tryParseTRICK(message, trick, cardsOnTable))
-        throw Error("invalid TRICK message: " + message);
-    logMessage(message, true);
-}
-
 void ClientProtocol::sendTRICK(int fd, uint8_t trick, std::string cardPlaced) {
     std::string message = "TRICK" + std::to_string(trick) + cardPlaced + "\r\n";
     sendMessage(fd, message);
@@ -88,7 +62,7 @@ bool ClientProtocol::tryParseTRICK(const std::string& message,
                                    uint8_t& trick,
                                    std::string& cardsOnTable) {
     std::smatch match;
-    std::regex re("^TRICK(1[0-3]|[1-9])((?:(10|[2-9JQKA])[SHDC]){0,52})\r\n$");
+    std::regex re("^TRICK(1[0-3]|[1-9])((?:(10|[2-9JQKA])[SHDC]){0,3})\r\n$");
     if (std::regex_match(message, match, re)) {
         trick = std::stoi(match[1]);
         cardsOnTable = match[2];
@@ -107,9 +81,63 @@ bool ClientProtocol::tryParseWRONG(const std::string& message, uint8_t& trick) {
     return false;
 }
 
-bool tryParseTAKEN(std::string message);
-bool tryParseSCORE(std::string message);
-bool tryParseTOTAL(std::string message);
+bool ClientProtocol::tryParseTAKEN(std::string message,
+                   uint8_t& trick,
+                   std::string& cardsTaken,
+                   std::string& seat) {
+    std::smatch match;
+    std::regex re(
+        "^TAKEN(1[0-3]|[1-9])((?:(10|[2-9JQKA])[SHDC]){0,3})([NESW])\r\n$");
+    if (std::regex_match(message, match, re)) {
+        trick = std::stoi(match[1]);
+        cardsTaken = match[2];
+        seat = match[3];
+        return true;
+    }
+    return false;
+}
+
+static std::string getScoresGroup() {
+    std::string seatGroup = "([NESW])";
+    std::string scoreGroup = "([0-9]+)";
+    std::string groups;
+    for (int i = 0; i < 4; i++) {
+        groups += seatGroup + scoreGroup;
+    }
+    return groups;
+}
+
+static std::map<std::string, unsigned int> getScoresMap(std::smatch& match) {
+    std::map<std::string, unsigned int> scores;
+    for (int i = 0; i < 4; i++) {
+        std::string seat = match[1 + 2 * i];
+        unsigned int score = std::stoi(match[2 + 2 * i]);
+        scores[seat] = score;
+    }
+    return scores;
+}
+
+bool ClientProtocol::tryParseSCORE(std::string message,
+                   std::map<std::string, unsigned int>& scores) {
+    std::smatch match;
+    std::regex re("^SCORE" + getScoresGroup() + "\r\n$");
+    if (std::regex_match(message, match, re)) {
+        scores = getScoresMap(match);
+        return true;
+    }
+    return false;
+}
+
+bool ClientProtocol::tryParseTOTAL(std::string message,
+                   std::map<std::string, unsigned int>& totals) {
+    std::smatch match;
+    std::regex re("^TOTAL" + getScoresGroup() + "\r\n$");
+    if (std::regex_match(message, match, re)) {
+        totals = getScoresMap(match);
+        return true;
+    }
+    return false;
+}
 
 bool ClientProtocol::tryParseInputTRICK(std::string& input, std::string& card) {
     std::smatch match;

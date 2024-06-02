@@ -3,6 +3,7 @@
 
 #include "network_server.hpp"
 #include <string>
+#include <map>
 
 class ServerProtocol {
 private:
@@ -20,9 +21,12 @@ public:
     void sendTRICK(int fd, uint8_t trick, std::string cardsOnTable);
     void recvTRICK(int fd, uint8_t* trick, std::string& cardPlaced);
     void sendWRONG(int fd, uint8_t trick);
-    void sendTAKEN();
-    void sendSCORE();
-    void sendTOTAL();
+    void sendTAKEN(int fd,
+                   uint8_t trick,
+                   std::string& cardsTaken,
+                   std::string& seat);
+    void sendSCORE(int fd, std::map<std::string, unsigned int>& scores);
+    void sendTOTAL(int fd, std::map<std::string, unsigned int>& totals);
 
     bool tryParseIAM(const std::string& message, std::string& seat);
     bool tryParseTRICK(const std::string& message,

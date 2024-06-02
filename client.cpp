@@ -107,9 +107,6 @@ void Client::connectToGame() {
                 lastPlayedCard.clear();
                 lastPlayedTrick = -1;
             }
-            else {
-                throw Error("invalid message: " + message);
-            }
         }
         else if (poll_fd[1].revents & POLLIN) {
             std::string input, card;

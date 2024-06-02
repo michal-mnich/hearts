@@ -71,7 +71,40 @@ void ServerProtocol::sendWRONG(int fd, uint8_t trick) {
     logMessage(fd, message, false);
 }
 
-bool ServerProtocol::tryParseIAM(const std::string& message, std::string& seat) {
+void ServerProtocol::sendTAKEN(int fd,
+                               uint8_t trick,
+                               std::string& cardsTaken,
+                               std::string& seat) {
+    std::string message =
+        "TAKEN" + std::to_string(trick) + cardsTaken + seat + "\r\n";
+    sendMessage(fd, message);
+    logMessage(fd, message, false);
+}
+
+void ServerProtocol::sendSCORE(int fd,
+                               std::map<std::string, unsigned int>& scores) {
+    std::string message = "SCORE";
+    for (auto& [seat, score] : scores) {
+        message += seat + std::to_string(score);
+    }
+    message += "\r\n";
+    sendMessage(fd, message);
+    logMessage(fd, message, false);
+}
+
+void ServerProtocol::sendTOTAL(int fd,
+                               std::map<std::string, unsigned int>& totals) {
+    std::string message = "TOTAL";
+    for (auto& [seat, total] : totals) {
+        message += seat + std::to_string(total);
+    }
+    message += "\r\n";
+    sendMessage(fd, message);
+    logMessage(fd, message, false);
+}
+
+bool ServerProtocol::tryParseIAM(const std::string& message,
+                                 std::string& seat) {
     std::smatch match;
     std::regex re("^IAM([NESW])\r\n$");
     if (std::regex_match(message, match, re)) {
