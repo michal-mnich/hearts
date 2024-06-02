@@ -23,7 +23,7 @@ client.o: client.cpp client.hpp arg_parser.hpp network_client.hpp \
  protocol_client.hpp common.hpp error.hpp network_common.hpp
 common.o: common.cpp common.hpp
 error.o: error.cpp error.hpp
-game.o: game.cpp game.hpp
+game.o: game.cpp game.hpp error.hpp
 kierki-klient.o: kierki-klient.cpp arg_parser.hpp client.hpp \
  network_client.hpp protocol_client.hpp error.hpp network_common.hpp
 kierki-serwer.o: kierki-serwer.cpp arg_parser.hpp error.hpp server.hpp \
@@ -44,4 +44,4 @@ server.o: server.cpp server.hpp arg_parser.hpp game.hpp \
  network_common.hpp
 
 clean:
-	rm -f kierki-klient kierki-serwer *.o
+	rm -f kierki-klient kierki-serwer *.o *.log
