@@ -27,11 +27,12 @@ private:
     std::condition_variable cv_TRICK;
     std::condition_variable cv_allplayers;
 
-    std::map<std::string, int> players;
+    std::map<std::string, int> player_fds;
     int askedTRICK;
 
     Deal* currentDeal;
     std::vector<Deal> deals;
+    std::map<std::string, unsigned int> scores;
 
     void gameThread();
     void acceptThread();

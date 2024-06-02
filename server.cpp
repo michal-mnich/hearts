@@ -14,6 +14,7 @@ void Server::parseFile(const std::string& filename) {
 
         deal.type = line[0] - '0';
         deal.firstPlayer = line.substr(1, 1);
+        deal.currentTrick = 1;
         deal.currentPlayer = deal.firstPlayer;
 
         std::getline(file, line);
@@ -99,26 +100,23 @@ disconnect:
 
 void Server::gameThread() {
     std::unique_lock<std::mutex> lock(mtx);
-    cv_allplayers.wait(lock, [this] { return players.size() == 4; });
+    cv_allplayers.wait(lock, [this] { return player_fds.size() == 4; });
 
     debug("All players are ready!");
 
-    for (const auto& [seat, fd] : players) {
+    for (const auto& [seat, fd] : player_fds) {
         protocol.sendDEAL(fd,
                           currentDeal->type,
                           currentDeal->firstPlayer,
                           currentDeal->hand[seat]);
     }
 
-    while (currentDeal->currentTrick < 5) {
-        if (currentDeal->currentPlayer == currentDeal->firstPlayer) {
-            currentDeal->currentTrick++;
-        }
-        int fd = players[currentDeal->currentPlayer];
+    while (currentDeal->currentTrick <= 13) {
+        int current_fd = player_fds[currentDeal->currentPlayer];
 
         do {
             try {
-                protocol.sendTRICK(fd,
+                protocol.sendTRICK(current_fd,
                                    currentDeal->currentTrick,
                                    currentDeal->cardsOnTable);
             }
@@ -132,11 +130,27 @@ void Server::gameThread() {
                 // }
                 std::cerr << message << std::endl;
             }
-            askedTRICK = fd;
+            askedTRICK = current_fd;
         } while (!cv_TRICK.wait_for(lock,
                                     std::chrono::seconds(protocol.timeout),
                                     [this] { return askedTRICK == -1; }));
+
         currentDeal->nextPlayer();
+
+        if (currentDeal->currentPlayer == currentDeal->firstPlayer) {
+            // end of trick, handle score
+
+            scores[currentDeal->highestPlayer] += currentDeal->getScore();
+
+            for (const auto& [seat, fd] : player_fds) {
+                protocol.sendTAKEN(fd,
+                                   currentDeal->currentTrick,
+                                   currentDeal->cardsOnTable,
+                                   currentDeal->highestPlayer);
+            }
+
+            currentDeal->nextTrick();
+        }
     }
 }
 
@@ -146,15 +160,15 @@ std::string Server::handleIAM(int fd) {
 
     std::unique_lock<std::mutex> lock(mtx);
 
-    if (players.contains(seat)) {
-        std::string activePlayers = getKeys(players);
+    if (player_fds.contains(seat)) {
+        std::string activePlayers = getKeys(player_fds);
         lock.unlock();
         protocol.sendBUSY(fd, activePlayers);
         throw Error("seat " + seat + " already taken");
     }
     else {
-        players[seat] = fd;
-        if (players.size() == 4) {
+        player_fds[seat] = fd;
+        if (player_fds.size() == 4) {
             cv_allplayers.notify_one();
         }
         lock.unlock();

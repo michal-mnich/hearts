@@ -20,4 +20,7 @@ std::string findCardWithSuit(const std::string& cards, char suit);
 void deleteCard(std::string& cards, const std::string& card);
 std::string getRandomCard(const std::string& cards);
 
+// return rank(c1) < rank(c2)
+bool compareRanks(std::string c1, std::string c2);
+
 #endif // COMMON_H

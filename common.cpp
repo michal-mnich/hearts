@@ -170,3 +170,13 @@ std::string getRandomCard(const std::string& cards) {
 
     return card;
 }
+
+bool compareRanks(std::string c1, std::string c2) {
+    c1.pop_back();
+    c2.pop_back();
+
+    int r1 = rankMap[c1];
+    int r2 = rankMap[c2];
+
+    return r1 < r2;
+}

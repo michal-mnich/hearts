@@ -1,5 +1,6 @@
 #include "game.hpp"
 #include "error.hpp"
+#include "common.hpp"
 #include <algorithm>
 #include <vector>
 
@@ -23,9 +24,18 @@ bool Deal::isLegal(uint8_t trick, std::string& cardPlaced) {
     return true;
 }
 
-void Deal::playCard(std::string& card) {
-    size_t pos = hand[currentPlayer].find(card);
-    hand[currentPlayer].erase(pos, card.size());
+void Deal::playCard(const std::string& card) {
+    deleteCard(hand[currentPlayer], card);
+
+    if (cardsOnTable.empty()) trickColor = card.back();
+
+    if (trickColor == card.back()) {
+        if (highestCard.empty() || compareRanks(highestCard, card)) {
+            highestCard = card;
+            highestPlayer = currentPlayer;
+        }
+    }
+
     cardsOnTable.append(card);
 }
 
@@ -56,4 +66,18 @@ unsigned int Deal::getScore() {
             return score;
     }
     throw Error("invalid type: " + std::to_string(type));
+}
+
+void Deal::nextTrick() {
+    currentTrick++;
+
+    currentPlayer = highestPlayer;
+    firstPlayer = highestPlayer;
+
+    hand[highestPlayer] += cardsOnTable;
+
+    cardsOnTable.clear();
+    highestCard.clear();
+    highestPlayer.clear();
+    trickColor = 0;
 }
