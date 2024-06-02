@@ -123,10 +123,7 @@ std::string getPrettyCards(const std::string& cardString, bool sort) {
         result += rankMapReverse[rank] + suitMapReverse[suit] + ", ";
     }
 
-    if (result.empty()) {
-        result = "None";
-    }
-    else {
+    if (!result.empty()) {
         result.pop_back();
         result.pop_back();
     }
