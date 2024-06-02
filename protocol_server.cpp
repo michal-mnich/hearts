@@ -57,7 +57,7 @@ void ServerProtocol::sendTRICK(int fd,
 }
 
 void ServerProtocol::recvTRICK(int fd,
-                               uint8_t* trick,
+                               uint8_t& trick,
                                std::string& cardPlaced) {
     auto message = recvMessage(fd, -1);
     if (!tryParseTRICK(message, trick, cardPlaced))
@@ -115,12 +115,12 @@ bool ServerProtocol::tryParseIAM(const std::string& message,
 }
 
 bool ServerProtocol::tryParseTRICK(const std::string& message,
-                                   uint8_t* trick,
+                                   uint8_t& trick,
                                    std::string& cardPlaced) {
     std::smatch match;
     std::regex re("^TRICK(1[0-3]|[1-9])((?:10|[2-9JQKA])[SHDC])\r\n$");
     if (std::regex_match(message, match, re)) {
-        *trick = std::stoi(match[1]);
+        trick = std::stoi(match[1]);
         cardPlaced = match[2];
         return true;
     }

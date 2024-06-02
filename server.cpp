@@ -180,7 +180,7 @@ std::string Server::handleIAM(int fd) {
 void Server::handleTRICK(int fd) {
     uint8_t trick;
     std::string cardPlaced;
-    protocol.recvTRICK(fd, &trick, cardPlaced);
+    protocol.recvTRICK(fd, trick, cardPlaced);
 
     std::unique_lock<std::mutex> lock(mtx);
 
