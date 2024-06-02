@@ -88,19 +88,8 @@ void Server::playerThread(int fd) {
             handleTRICK(fd);
         }
         catch (Error& e) {
-            std::string error(e.what());
-            std::cerr << error << std::endl;
-            if (seat == currentDeal->currentPlayer) {
-                if (isSubstring(error, "invalid TRICK message")) {
-                    // protocol.sendWRONG(fd);
-                }
-                else {
-                    goto disconnect;
-                }
-            }
-            else {
-                goto disconnect;
-            }
+            std::cerr << e.what() << std::endl;
+            goto disconnect;
         }
     }
 
@@ -182,14 +171,22 @@ void Server::handleTRICK(int fd) {
     std::unique_lock<std::mutex> lock(mtx);
 
     if (askedTRICK == fd) {
-        currentDeal->cardsOnTable += cardPlaced;
-        askedTRICK = -1;
-        cv_TRICK.notify_one();
-        lock.unlock();
+        if (currentDeal->isLegal(trick, cardPlaced)) {
+            // asked client sent legal TRICK
+            currentDeal->playCard(cardPlaced);
+            askedTRICK = -1;
+            cv_TRICK.notify_one();
+            lock.unlock();
+        }
+        else {
+            // asked client sent illegal TRICK
+            lock.unlock();
+            protocol.sendWRONG(fd, trick);
+        }
     }
     else {
+        // unasked client sent TRICK
         lock.unlock();
-        // unwanted client sent valid TRICK
         protocol.sendWRONG(fd, trick);
     }
 }

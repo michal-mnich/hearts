@@ -19,17 +19,19 @@ void Client::connectToGame() {
     protocol.recvDEAL(fd, type, first, hand);
     std::cout << "Deal type: " << (int)type << std::endl;
     std::cout << "First player: " << first << std::endl;
-    uint8_t trick;
+    uint8_t trick, lastPlayedTrick = 0;
     std::string cardsOnTable;
     while (true) {
         try {
             protocol.recvTRICK(fd, &trick, cardsOnTable);
+            if (trick == lastPlayedTrick) continue;
         }
         catch (Error& e) {
             std::string message = e.what();
             if (isSubstring(message, "WRONG")) {
                 std::cerr << message << std::flush;
-                hand.append(playedCard);
+                hand.append(lastPlayedCard);
+                lastPlayedTrick--;
                 continue;
             }
             else {
@@ -39,56 +41,24 @@ void Client::connectToGame() {
 
         std::cout << "Trick: " << (int)trick << std::endl;
         std::cout << "Hand: " << std::endl;
-        std::cout << getPrettyCards(hand) << std::endl;
-        std::cout << "Cards on table (bottom-top): " << std::endl;
+        std::cout << getPrettyCards(hand, true) << std::endl;
+        std::cout << "Cards on table (bottom - top): " << std::endl;
         std::cout << getPrettyCards(cardsOnTable) << std::endl;
 
         getCard(cardsOnTable);
-        protocol.sendTRICK(fd, trick, playedCard);
+        protocol.sendTRICK(fd, trick, lastPlayedCard);
+        lastPlayedTrick = trick;
     }
 }
 
-std::string getRandomCard(std::string& hand) {
-    std::string card;
-    srand(time(NULL));
-    int index = rand() % hand.size();
-    if (hand[index] == 'S' || hand[index] == 'H' || hand[index] == 'D' ||
-        hand[index] == 'C')
-    {
-        index--;
-    }
-    if (hand[index] == '0') index--;
-    if (hand[index] == '1') {
-        card = hand.substr(index, 3);
-        hand.erase(index, 3);
-    }
-    else {
-        card = hand.substr(index, 2);
-        hand.erase(index, 2);
-    }
-    return card;
-}
-
-void Client::getCard(std::string cardsOnTable) {
+void Client::getCard(const std::string& cardsOnTable) {
     std::string card;
     if (auto_player) {
-        if (cardsOnTable.empty()) card = getRandomCard(hand);
-        else {
-            char lastColor = cardsOnTable.back();
-            auto it = std::find(hand.begin(), hand.end(), lastColor);
-            if (it == hand.end()) card = getRandomCard(hand);
-            else {
-                it--;
-                if (*it == '0') it--;
-                if (*it == '1') {
-                    card = hand.substr(it - hand.begin(), 3);
-                    hand.erase(it - hand.begin(), 3);
-                }
-                else {
-                    card = hand.substr(it - hand.begin(), 2);
-                    hand.erase(it - hand.begin(), 2);
-                }
-            }
+        if (!cardsOnTable.empty()) {
+            card = findCardWithSuit(hand, cardsOnTable.back());
+        }
+        if (card.empty()) {
+            card = getRandomCard(hand);
         }
         sleep(3);
     }
@@ -96,5 +66,6 @@ void Client::getCard(std::string cardsOnTable) {
         std::cout << "Enter your card: ";
         std::cin >> card;
     }
-    playedCard = card;
+    deleteCard(hand, card);
+    lastPlayedCard = card;
 }

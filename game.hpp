@@ -13,11 +13,12 @@ public:
     std::map<std::string, std::string> hand; // seat, cards
 
     std::string currentPlayer;
-    uint8_t currentTrick;
+    uint8_t currentTrick = 0;
     std::string cardsOnTable;
 
     void nextPlayer();
-    Deal();
+    bool isLegal(uint8_t trick, std::string& cardPlaced);
+    void playCard(std::string& card);
 };
 
 #endif // GAME_H
