@@ -19,6 +19,7 @@ public:
     void nextPlayer();
     bool isLegal(uint8_t trick, std::string& cardPlaced);
     void playCard(std::string& card);
+    unsigned int getScore();
 };
 
 #endif // GAME_H

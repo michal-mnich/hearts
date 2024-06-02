@@ -20,7 +20,7 @@ kierki-serwer: kierki-serwer.o arg_parser.o server.o network_server.o network_co
 # generated with g++ -MM *.cpp
 arg_parser.o: arg_parser.cpp arg_parser.hpp error.hpp
 client.o: client.cpp client.hpp arg_parser.hpp network_client.hpp \
- protocol_client.hpp common.hpp error.hpp
+ protocol_client.hpp common.hpp error.hpp network_common.hpp
 common.o: common.cpp common.hpp
 error.o: error.cpp error.hpp
 game.o: game.cpp game.hpp

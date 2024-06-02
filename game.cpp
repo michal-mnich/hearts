@@ -1,4 +1,5 @@
 #include "game.hpp"
+#include "error.hpp"
 #include <algorithm>
 #include <vector>
 
@@ -26,4 +27,33 @@ void Deal::playCard(std::string& card) {
     size_t pos = hand[currentPlayer].find(card);
     hand[currentPlayer].erase(pos, card.size());
     cardsOnTable.append(card);
+}
+
+unsigned int Deal::getScore() {
+    auto b = cardsOnTable.begin();
+    auto e = cardsOnTable.end();
+    switch (type) {
+        case 1:
+            return 1;
+        case 2:
+            return std::count(b, e, 'H');
+        case 3:
+            return std::count(b, e, 'Q') * 5;
+        case 4:
+            return (std::count(b, e, 'J') + std::count(b, e, 'K')) * 2;
+        case 5:
+            return (cardsOnTable.find("KH") != std::string::npos) * 18;
+        case 6:
+            return (currentTrick == 7 || currentTrick == 13) * 10;
+        case 7:
+            unsigned int score = 0;
+            score += 1;
+            score += std::count(b, e, 'H');
+            score += std::count(b, e, 'Q') * 5;
+            score += (std::count(b, e, 'J') + std::count(b, e, 'K')) * 2;
+            score += (cardsOnTable.find("KH") != std::string::npos) * 18;
+            score += (currentTrick == 7 || currentTrick == 13) * 10;
+            return score;
+    }
+    throw Error("invalid type: " + std::to_string(type));
 }

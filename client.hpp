@@ -9,7 +9,7 @@ class Client {
 public:
     Client(ClientConfig& config);
     void connectToGame();
-    void getCard(const std::string& cardsOnTable);
+    std::string getAutoCard(const std::string& cardsOnTable);
 
 private:
     ClientNetworker networker;

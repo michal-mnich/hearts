@@ -24,11 +24,9 @@ void ServerProtocol::logMessage(int client_fd,
 
 void ServerProtocol::recvIAM(int fd, std::string& seat) {
     auto message = recvMessage(fd, timeout);
-    std::regex pattern("^IAM[NESW]\r\n$");
-    if (!std::regex_match(message, pattern))
+    if (!tryParseIAM(message, seat))
         throw Error("invalid IAM message: " + message);
     logMessage(fd, message, true);
-    seat = message.substr(3, 1);
 }
 
 void ServerProtocol::sendBUSY(int fd, std::string taken) {
@@ -62,16 +60,36 @@ void ServerProtocol::recvTRICK(int fd,
                                uint8_t* trick,
                                std::string& cardPlaced) {
     auto message = recvMessage(fd, -1);
-    std::regex pattern("^TRICK[1-7]((10|[2-9JQKA])[SHDC])\r\n$");
-    if (!std::regex_match(message, pattern))
+    if (!tryParseTRICK(message, trick, cardPlaced))
         throw Error("invalid TRICK message: " + message);
     logMessage(fd, message, true);
-    *trick = message[5] - '0';
-    cardPlaced = message.substr(6, message.size() - 8);
 }
 
 void ServerProtocol::sendWRONG(int fd, uint8_t trick) {
     std::string message = "WRONG" + std::to_string(trick) + "\r\n";
     sendMessage(fd, message);
     logMessage(fd, message, false);
+}
+
+bool ServerProtocol::tryParseIAM(const std::string& message, std::string& seat) {
+    std::smatch match;
+    std::regex re("^IAM([NESW])\r\n$");
+    if (std::regex_match(message, match, re)) {
+        seat = match[1];
+        return true;
+    }
+    return false;
+}
+
+bool ServerProtocol::tryParseTRICK(const std::string& message,
+                                   uint8_t* trick,
+                                   std::string& cardPlaced) {
+    std::smatch match;
+    std::regex re("^TRICK(1[0-3]|[1-9])((10|[2-9JQKA])[SHDC])\r\n$");
+    if (std::regex_match(message, match, re)) {
+        *trick = std::stoi(match[1]);
+        cardPlaced = match[2];
+        return true;
+    }
+    return false;
 }

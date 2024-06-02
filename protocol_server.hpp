@@ -23,6 +23,11 @@ public:
     void sendTAKEN();
     void sendSCORE();
     void sendTOTAL();
+
+    bool tryParseIAM(const std::string& message, std::string& seat);
+    bool tryParseTRICK(const std::string& message,
+                       uint8_t* trick,
+                       std::string& cardPlaced);
 };
 
 #endif // PROTOCOL_SERVER_H
