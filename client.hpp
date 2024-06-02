@@ -20,6 +20,8 @@ private:
 
     std::string hand;
     std::string lastPlayedCard;
+
+    std::vector<std::string> tricksTaken;
 };
 
 #endif // CLIENT_H

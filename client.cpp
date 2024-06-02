@@ -30,10 +30,12 @@ void displayWRONG(uint8_t trick) {
               << "." << std::endl;
 }
 
-void displayTAKEN(uint8_t trick, std::string& cardsTaken, std::string& seat) {
-    std::cout << "A trick " << std::to_string(trick) << " is taken by " << seat
-              << ", cards " << getPrettyCards(cardsTaken, true) << "."
-              << std::endl;
+void displayTAKEN(uint8_t trick,
+                  std::string& cardsTaken,
+                  std::string& takingPlayer) {
+    std::cout << "A trick " << std::to_string(trick) << " is taken by "
+              << takingPlayer << ", cards " << getPrettyCards(cardsTaken, true)
+              << "." << std::endl;
 }
 
 void displaySCORE(std::string& p1,
@@ -63,7 +65,7 @@ Client::Client(ClientConfig& config)
       auto_player(config.auto_player) {}
 
 void Client::connectToGame() {
-    std::string busy, first, cardsOnTable;
+    std::string busy, first, cardsOnTable, highestPlayer, cardsTaken;
     uint8_t type, trick, lastPlayedTrick = -1;
     int fd = networker.sock_fd;
 
@@ -107,6 +109,20 @@ void Client::connectToGame() {
                 lastPlayedCard.clear();
                 lastPlayedTrick = -1;
             }
+            else if (protocol.tryParseTAKEN(message,
+                                            trick,
+                                            cardsTaken,
+                                            highestPlayer))
+            {
+                protocol.logMessage(message, true);
+                if (!auto_player) {
+                    displayTAKEN(trick, cardsTaken, highestPlayer);
+                }
+                if (highestPlayer == seat) {
+                    hand += cardsTaken;
+                    tricksTaken.push_back(cardsTaken);
+                }
+            }
         }
         else if (poll_fd[1].revents & POLLIN) {
             std::string input, card;
@@ -127,7 +143,9 @@ void Client::connectToGame() {
                 std::cout << getPrettyCards(hand, true) << std::endl;
             }
             else if (protocol.tryParseInputTricks(input)) {
-                std::cout << "not implemented" << std::endl;
+                for (auto trick : tricksTaken) {
+                    std::cout << getPrettyCards(trick) << std::endl;
+                }
             }
             else {
                 std::cout << "Invalid input." << std::endl;

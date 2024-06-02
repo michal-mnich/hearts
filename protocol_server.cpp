@@ -118,7 +118,7 @@ bool ServerProtocol::tryParseTRICK(const std::string& message,
                                    uint8_t* trick,
                                    std::string& cardPlaced) {
     std::smatch match;
-    std::regex re("^TRICK(1[0-3]|[1-9])((10|[2-9JQKA])[SHDC])\r\n$");
+    std::regex re("^TRICK(1[0-3]|[1-9])((?:10|[2-9JQKA])[SHDC])\r\n$");
     if (std::regex_match(message, match, re)) {
         *trick = std::stoi(match[1]);
         cardPlaced = match[2];
