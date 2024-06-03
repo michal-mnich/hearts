@@ -9,19 +9,26 @@ class Client {
 public:
     Client(ClientConfig& config);
     void connectToGame();
-    std::string getAutoCard(const std::string& cardsOnTable);
 
 private:
     ClientNetworker networker;
     ClientProtocol protocol;
 
     std::string seat;
-    bool auto_player;
 
+    bool game_over = false;
+    std::string cardsOnTable;
     std::string hand;
     std::string lastPlayedCard;
+    uint8_t lastPlayedTrick = 0;
+    uint8_t serverTrick;
 
     std::vector<std::string> tricksTaken;
+
+    std::string getAutoCard();
+
+    void handleServer();
+    void handleInput();
 };
 
 #endif // CLIENT_H

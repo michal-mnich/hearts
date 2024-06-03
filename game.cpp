@@ -4,11 +4,12 @@
 #include <algorithm>
 #include <vector>
 
+static std::vector<std::string> playerOrder = {"N", "E", "S", "W"};
+
 void Deal::nextPlayer() {
-    std::vector<std::string> order = {"N", "E", "S", "W"};
-    auto it = std::find(order.begin(), order.end(), currentPlayer);
+    auto it = std::find(playerOrder.begin(), playerOrder.end(), currentPlayer);
     it++;
-    if (it == order.end()) it = order.begin();
+    if (it == playerOrder.end()) it = playerOrder.begin();
     currentPlayer = *it;
 }
 
@@ -65,7 +66,7 @@ unsigned int Deal::getScore() {
             score += (currentTrick == 7 || currentTrick == 13) * 10;
             return score;
     }
-    throw Error("invalid type: " + std::to_string(type));
+    throw Error("unexpected type: " + std::to_string(type));
 }
 
 void Deal::nextTrick() {

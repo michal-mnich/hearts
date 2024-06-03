@@ -8,9 +8,9 @@
 class ClientProtocol {
 private:
     ClientNetworker* networker;
-    bool auto_player;
 
 public:
+    bool auto_player;
     ClientProtocol(ClientNetworker* networker, bool auto_player);
 
     void logMessage(std::string message, bool incoming);
@@ -40,6 +40,16 @@ public:
     bool tryParseInputTRICK(std::string& input, std::string& card);
     bool tryParseInputCards(std::string& input);
     bool tryParseInputTricks(std::string& input);
+
+    void displayBUSY(std::string& taken);
+    void displayDEAL(uint8_t type, std::string& first, std::string& hand);
+    void displayWRONG(uint8_t trick);
+    void displayTAKEN(uint8_t trick,
+                      std::string& cardsTaken,
+                      std::string& takingPlayer);
+    void displaySCORE(std::map<std::string, unsigned int>& scores);
+    void
+    displayTRICK(uint8_t trick, std::string& cardsOnTable, std::string& hand);
 };
 
 #endif // PROTOCOL_CLIENT_H

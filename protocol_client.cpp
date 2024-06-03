@@ -160,3 +160,57 @@ bool ClientProtocol::tryParseInputTricks(std::string& input) {
     std::regex re("^tricks$");
     return std::regex_match(input, re);
 }
+
+void ClientProtocol::displayBUSY(std::string& taken) {
+    if (auto_player) return;
+    std::string busy;
+    for (size_t i = 0; i < taken.size(); i++) {
+        busy += taken[i];
+        if (i != taken.size() - 1) {
+            busy += ", ";
+        }
+    }
+    std::cout << "Place busy, list of busy places received: " << busy << "."
+              << std::endl;
+}
+
+void ClientProtocol::displayDEAL(uint8_t type,
+                                 std::string& first,
+                                 std::string& hand) {
+    if (auto_player) return;
+    std::cout << "New deal " << std::to_string(type) << ": staring place "
+              << first << ", your cards: " << getPrettyCards(hand, true) << "."
+              << std::endl;
+}
+
+void ClientProtocol::displayWRONG(uint8_t trick) {
+    if (auto_player) return;
+    std::cout << "Wrong message received in trick " << std::to_string(trick)
+              << "." << std::endl;
+}
+
+void ClientProtocol::displayTAKEN(uint8_t trick,
+                                  std::string& cardsTaken,
+                                  std::string& takingPlayer) {
+    if (auto_player) return;
+    std::cout << "A trick " << std::to_string(trick) << " is taken by "
+              << takingPlayer << ", cards " << getPrettyCards(cardsTaken, true)
+              << "." << std::endl;
+}
+
+void ClientProtocol::displaySCORE(std::map<std::string, unsigned int>& scores) {
+    if (auto_player) return;
+    std::cout << "The total scores are:" << std::endl;
+    for (const auto& [seat, score] : scores) {
+        std::cout << seat << " | " << std::to_string(score) << std::endl;
+    }
+}
+
+void ClientProtocol::displayTRICK(uint8_t trick,
+                                  std::string& cardsOnTable,
+                                  std::string& hand) {
+    if (auto_player) return;
+    std::cout << "Trick: (" << std::to_string(trick) << ") "
+              << getPrettyCards(cardsOnTable) << std::endl;
+    std::cout << "Available: " << getPrettyCards(hand, true) << std::endl;
+}
