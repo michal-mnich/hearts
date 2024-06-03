@@ -11,7 +11,7 @@ ClientProtocol::ClientProtocol(ClientNetworker* networker, bool auto_player)
     signal(SIGPIPE, SIG_IGN);
 }
 
-void ClientProtocol::logMessage(std::string message, bool incoming) {
+void ClientProtocol::logMessage(const std::string& message, bool incoming) {
     if (auto_player) {
         std::string from = networker->localAddress;
         std::string to = networker->peerAddress;
@@ -20,13 +20,15 @@ void ClientProtocol::logMessage(std::string message, bool incoming) {
     }
 }
 
-void ClientProtocol::sendIAM(int fd, std::string seat) {
+void ClientProtocol::sendIAM(int fd, const std::string& seat) {
     std::string message = "IAM" + seat + "\r\n";
     sendMessage(fd, message);
     logMessage(message, false);
 }
 
-void ClientProtocol::sendTRICK(int fd, uint8_t trick, std::string cardPlaced) {
+void ClientProtocol::sendTRICK(int fd,
+                               uint8_t trick,
+                               const std::string& cardPlaced) {
     std::string message = "TRICK" + std::to_string(trick) + cardPlaced + "\r\n";
     sendMessage(fd, message);
     logMessage(message, false);
@@ -81,7 +83,7 @@ bool ClientProtocol::tryParseWRONG(const std::string& message, uint8_t& trick) {
     return false;
 }
 
-bool ClientProtocol::tryParseTAKEN(std::string message,
+bool ClientProtocol::tryParseTAKEN(const std::string& message,
                                    uint8_t& trick,
                                    std::string& cardsTaken,
                                    std::string& seat) {
@@ -118,7 +120,7 @@ static std::map<std::string, unsigned int> getScoresMap(std::smatch& match) {
 }
 
 bool ClientProtocol::tryParseSCORE(
-    std::string message,
+    const std::string& message,
     std::map<std::string, unsigned int>& scores) {
     std::smatch match;
     std::regex re("^SCORE" + getScoresGroup() + "\r\n$");
@@ -130,7 +132,7 @@ bool ClientProtocol::tryParseSCORE(
 }
 
 bool ClientProtocol::tryParseTOTAL(
-    std::string message,
+    const std::string& message,
     std::map<std::string, unsigned int>& totals) {
     std::smatch match;
     std::regex re("^TOTAL" + getScoresGroup() + "\r\n$");
@@ -141,7 +143,8 @@ bool ClientProtocol::tryParseTOTAL(
     return false;
 }
 
-bool ClientProtocol::tryParseInputTRICK(std::string& input, std::string& card) {
+bool ClientProtocol::tryParseInputTRICK(const std::string& input,
+                                        std::string& card) {
     std::smatch match;
     std::regex re("^!((?:10|[2-9JQKA])[SHDC])$");
     if (std::regex_match(input, match, re)) {
@@ -151,12 +154,12 @@ bool ClientProtocol::tryParseInputTRICK(std::string& input, std::string& card) {
     return false;
 }
 
-bool ClientProtocol::tryParseInputCards(std::string& input) {
+bool ClientProtocol::tryParseInputCards(const std::string& input) {
     std::regex re("^cards$");
     return std::regex_match(input, re);
 }
 
-bool ClientProtocol::tryParseInputTricks(std::string& input) {
+bool ClientProtocol::tryParseInputTricks(const std::string& input) {
     std::regex re("^tricks$");
     return std::regex_match(input, re);
 }
@@ -198,7 +201,8 @@ void ClientProtocol::displayTAKEN(uint8_t trick,
               << "." << std::endl;
 }
 
-void ClientProtocol::displaySCORE(std::map<std::string, unsigned int>& scores) {
+void ClientProtocol::displaySCORE(
+    const std::map<std::string, unsigned int>& scores) {
     if (auto_player) return;
     std::cout << "The total scores are:" << std::endl;
     for (const auto& [seat, score] : scores) {

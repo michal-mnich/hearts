@@ -5,7 +5,7 @@
 #include <regex>
 #include <unordered_map>
 
-std::unordered_map<std::string, int> rankMap = {
+static std::unordered_map<std::string, int> rankMap = {
     {"2",  2 },
     {"3",  3 },
     {"4",  4 },
@@ -21,7 +21,7 @@ std::unordered_map<std::string, int> rankMap = {
     {"A",  14}
 };
 
-std::unordered_map<int, std::string> rankMapReverse = {
+static std::unordered_map<int, std::string> rankMapReverse = {
     {2,  "2" },
     {3,  "3" },
     {4,  "4" },
@@ -37,14 +37,14 @@ std::unordered_map<int, std::string> rankMapReverse = {
     {14, "A" }
 };
 
-std::unordered_map<std::string, int> suitMap = {
+static std::unordered_map<std::string, int> suitMap = {
     {"S", 0},
     {"H", 1},
     {"D", 2},
     {"C", 3}
 };
 
-std::unordered_map<int, std::string> suitMapReverse = {
+static std::unordered_map<int, std::string> suitMapReverse = {
     {0, "S"},
     {1, "H"},
     {2, "D"},
@@ -69,21 +69,13 @@ std::string createTimestamp() {
     return oss.str();
 }
 
-std::string createLog(std::string from, std::string to, std::string message) {
+std::string createLog(const std::string& from,
+                      const std::string& to,
+                      const std::string& message) {
     return "[" + from + "," + to + "," + createTimestamp() + "] " + message;
 }
 
-std::string getRandomSeat() {
-    std::string seats[] = {"N", "E", "S", "W", "X"};
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distr(0, 4);
-
-    return seats[distr(gen)];
-}
-
-std::string getKeys(std::map<std::string, int>& map) {
+std::string getKeys(const std::map<std::string, int>& map) {
     std::string keys;
     for (auto const& [key, val] : map) {
         keys += key;
@@ -171,12 +163,8 @@ std::string getRandomCard(const std::string& cards) {
     return card;
 }
 
-bool compareRanks(std::string c1, std::string c2) {
-    c1.pop_back();
-    c2.pop_back();
-
-    int r1 = rankMap[c1];
-    int r2 = rankMap[c2];
-
+bool compareRanks(const std::string& c1, const std::string& c2) {
+    int r1 = rankMap[c1.substr(c1.size() - 1)];
+    int r2 = rankMap[c2.substr(c2.size() - 1)];
     return r1 < r2;
 }

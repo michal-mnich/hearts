@@ -13,7 +13,7 @@ ServerProtocol::ServerProtocol(ServerNetworker* networker, unsigned int timeout)
 }
 
 void ServerProtocol::logMessage(int client_fd,
-                                std::string message,
+                                const std::string& message,
                                 bool incoming) {
     auto clientInfo = networker->getClientInfo(client_fd);
     std::string from = clientInfo.first;
@@ -29,16 +29,16 @@ void ServerProtocol::recvIAM(int fd, std::string& seat) {
     logMessage(fd, message, true);
 }
 
-void ServerProtocol::sendBUSY(int fd, std::string taken) {
-    std::string message = "BUSY" + taken + "\r\n";
+void ServerProtocol::sendBUSY(int fd, const std::string& busySeats) {
+    std::string message = "BUSY" + busySeats + "\r\n";
     sendMessage(fd, message);
     logMessage(fd, message, false);
 }
 
 void ServerProtocol::sendDEAL(int fd,
                               uint8_t type,
-                              std::string first,
-                              std::string cards) {
+                              const std::string& first,
+                              const std::string& cards) {
     std::string message =
         "DEAL" + std::to_string(type) + first + cards + "\r\n";
     sendMessage(fd, message);
@@ -47,7 +47,7 @@ void ServerProtocol::sendDEAL(int fd,
 
 void ServerProtocol::sendTRICK(int fd,
                                uint8_t trick,
-                               std::string cardsOnTable) {
+                               const std::string& cardsOnTable) {
     std::string message =
         "TRICK" + std::to_string(trick) + cardsOnTable + "\r\n";
     setNonBlocking(fd);
@@ -73,8 +73,8 @@ void ServerProtocol::sendWRONG(int fd, uint8_t trick) {
 
 void ServerProtocol::sendTAKEN(int fd,
                                uint8_t trick,
-                               std::string& cardsTaken,
-                               std::string& seat) {
+                               const std::string& cardsTaken,
+                               const std::string& seat) {
     std::string message =
         "TAKEN" + std::to_string(trick) + cardsTaken + seat + "\r\n";
     sendMessage(fd, message);
