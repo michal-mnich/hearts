@@ -9,7 +9,6 @@ std::string createTimestamp();
 std::string createLog(const std::string& from,
                       const std::string& to,
                       const std::string& message);
-std::string getRandomSeat();
 std::string getKeys(const std::map<std::string, int>& map);
 
 bool isRank(char c);

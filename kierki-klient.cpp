@@ -1,7 +1,6 @@
 #include "arg_parser.hpp"
 #include "client.hpp"
 #include "error.hpp"
-#include "network_common.hpp"
 #include <iostream>
 
 int main(int argc, char** argv) {

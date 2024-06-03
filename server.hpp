@@ -6,11 +6,8 @@
 #include "network_server.hpp"
 #include "protocol_server.hpp"
 #include "common.hpp"
-#include <latch>
 #include <map>
 #include <condition_variable>
-
-#define QUEUE_SIZE 4
 
 class Server {
 public:

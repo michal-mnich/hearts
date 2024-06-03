@@ -1,12 +1,12 @@
 #include "network_common.hpp"
 #include "error.hpp"
 #include <chrono>
+#include <fcntl.h>
 #include <netdb.h>
 #include <poll.h>
 #include <unistd.h>
-#include <fcntl.h>
 
-#define BUF_SIZE 1
+#define BUF_SIZE     1
 #define MAX_MSG_SIZE 64
 
 /* System functions wrappers with error handling */
@@ -56,13 +56,13 @@ int _accept(int sock_fd) {
     return client_socket;
 }
 
-void _getsockname(int sock_fd, struct sockaddr_storage* addr) {
+static void _getsockname(int sock_fd, struct sockaddr_storage* addr) {
     socklen_t addrLen = sizeof(*addr);
     if (getsockname(sock_fd, (struct sockaddr*)addr, &addrLen) < 0)
         throw Error("getsockname");
 }
 
-void _getpeername(int sock_fd, struct sockaddr_storage* addr) {
+static void _getpeername(int sock_fd, struct sockaddr_storage* addr) {
     socklen_t addrLen = sizeof(*addr);
     if (getpeername(sock_fd, (struct sockaddr*)addr, &addrLen) < 0)
         throw Error("getpeername");
@@ -89,7 +89,7 @@ bool _validAddress(struct addrinfo* hints, struct addrinfo* res) {
         return false;
     }
 
-    // Check if socket type and protocol matches
+    // Check if socket type and protocol match
     return res->ai_socktype == hints->ai_socktype &&
            res->ai_protocol == hints->ai_protocol;
 }
@@ -107,7 +107,7 @@ std::string _domainToString(int domain) {
     }
 }
 
-std::string _getAddressString(struct sockaddr_storage* addr) {
+static std::string _getAddressString(struct sockaddr_storage* addr) {
     char ipStr[INET6_ADDRSTRLEN];
     std::string ip, port;
 
@@ -145,7 +145,7 @@ std::string getLocalAddress(int sock_fd) {
 }
 
 // Write n bytes to a descriptor
-void writen(int fd, const void* vptr, size_t n) {
+static void writen(int fd, const void* vptr, size_t n) {
     ssize_t nleft, nwritten;
     const char* ptr;
 
@@ -201,10 +201,9 @@ void waitPollOut(int fd) {
     if (!(pollfd.revents & POLLOUT)) {
         throw Error("poll (revents)");
     }
-
 }
 
-std::string _read(int fd) {
+static std::string _read(int fd) {
     char buffer[BUF_SIZE];
     int nread;
 begin:
@@ -223,13 +222,14 @@ begin:
 }
 
 std::string recvMessage(int fd, int timeout) {
+    std::chrono::system_clock::time_point start, end;
     std::string message, chunk;
     bool timeout_mode = (timeout != -1);
     if (timeout_mode) timeout *= 1000;
     while (true) {
-        auto start = std::chrono::system_clock::now();
+        if (timeout_mode) start = std::chrono::system_clock::now();
         waitPollIn(fd, timeout);
-        auto end = std::chrono::system_clock::now();
+        if (timeout_mode) end = std::chrono::system_clock::now();
 
         if (timeout_mode) {
             auto dur = duration_cast<std::chrono::milliseconds>(end - start);
