@@ -27,7 +27,7 @@ private:
     std::map<std::string, int> player_fds;
     int askedTRICK = -1;
 
-    Deal* currentDeal;
+    Deal* currentDeal = nullptr;
     std::vector<Deal> deals;
     std::map<std::string, unsigned int> scores;
 
