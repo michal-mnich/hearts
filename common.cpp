@@ -164,7 +164,7 @@ std::string getRandomCard(const std::string& cards) {
 }
 
 bool compareRanks(const std::string& c1, const std::string& c2) {
-    int r1 = rankMap[c1.substr(c1.size() - 1)];
-    int r2 = rankMap[c2.substr(c2.size() - 1)];
+    int r1 = rankMap[c1.substr(0, c1.size() - 1)];
+    int r2 = rankMap[c2.substr(0, c2.size() - 1)];
     return r1 < r2;
 }

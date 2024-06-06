@@ -8,7 +8,7 @@
 class Client {
 public:
     explicit Client(ClientConfig& config);
-    void connectToGame();
+    bool connectToGame();
 
 private:
     ClientNetworker networker;
@@ -16,7 +16,7 @@ private:
 
     std::string seat;
 
-    bool game_over = false;
+    bool lastTotal = false;
     std::string cardsOnTable;
     std::string hand;
     std::string lastPlayedCard;

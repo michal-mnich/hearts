@@ -5,6 +5,7 @@
 #include <map>
 #include <semaphore>
 #include <string>
+#include <vector>
 
 class Deal {
 public:
@@ -14,7 +15,10 @@ public:
 
     uint8_t type;
     std::string firstPlayer;
-    std::map<std::string, std::string> hand; // seat, cards
+    std::map<std::string, std::string> originalHand; // seat, cards
+    std::map<std::string, std::string> currentHand; // seat, cards
+    std::map<std::string, unsigned int> scores; // player, score
+    std::map<std::string, std::vector<std::string>> tricksTaken;
 
     std::string currentPlayer;
     uint8_t currentTrick;

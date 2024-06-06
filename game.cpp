@@ -1,6 +1,6 @@
 #include "game.hpp"
-#include "error.hpp"
 #include "common.hpp"
+#include "error.hpp"
 #include <algorithm>
 #include <vector>
 
@@ -16,17 +16,19 @@ void Deal::nextPlayer() {
 bool Deal::isLegal(uint8_t trick, std::string& cardPlaced) {
     if (trick != currentTrick) return false;
     if (cardsOnTable.find(cardPlaced) != std::string::npos) return false;
-    if (hand[currentPlayer].find(cardPlaced) == std::string::npos) return false;
+    if (currentHand[currentPlayer].find(cardPlaced) == std::string::npos)
+        return false;
     if (cardsOnTable.empty()) return true;
     char tableSuit = cardsOnTable.back();
     char placedSuit = cardPlaced.back();
     if (tableSuit == placedSuit) return true;
-    if (hand[currentPlayer].find(tableSuit) != std::string::npos) return false;
+    if (currentHand[currentPlayer].find(tableSuit) != std::string::npos)
+        return false;
     return true;
 }
 
 void Deal::playCard(const std::string& card) {
-    deleteCard(hand[currentPlayer], card);
+    deleteCard(currentHand[currentPlayer], card);
 
     if (cardsOnTable.empty()) trickColor = card.back();
 
@@ -70,12 +72,14 @@ unsigned int Deal::getScore() {
 }
 
 void Deal::nextTrick() {
+    scores[highestPlayer] += getScore();
+    currentHand[highestPlayer] += cardsOnTable;
+    tricksTaken[highestPlayer].push_back(cardsOnTable);
+
     currentTrick++;
 
     currentPlayer = highestPlayer;
     firstPlayer = highestPlayer;
-
-    hand[highestPlayer] += cardsOnTable;
 
     cardsOnTable.clear();
     highestCard.clear();

@@ -197,7 +197,7 @@ void ClientProtocol::displayTAKEN(uint8_t trick,
                                   const std::string& takingPlayer) {
     if (auto_player) return;
     std::cout << "A trick " << std::to_string(trick) << " is taken by "
-              << takingPlayer << ", cards " << getPrettyCards(cardsTaken, true)
+              << takingPlayer << ", cards " << getPrettyCards(cardsTaken)
               << "." << std::endl;
 }
 

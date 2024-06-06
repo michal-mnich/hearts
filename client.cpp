@@ -13,14 +13,20 @@ Client::Client(ClientConfig& config)
 void Client::handleServer() {
     uint8_t type;
     std::string busy, first, cardsTaken, highestPlayer;
+    std::map<std::string, unsigned int> scores, totals;
     std::string message = recvMessage(networker.sock_fd, -1);
     protocol.logMessage(message, true);
+    lastTotal = false;
 
     if (protocol.tryParseBUSY(message, busy)) {
         protocol.displayBUSY(busy);
     }
     else if (protocol.tryParseDEAL(message, type, first, hand)) {
         protocol.displayDEAL(type, first, hand);
+        lastPlayedCard.clear();
+        lastPlayedTrick = 0;
+        serverTrick = 0;
+        tricksTaken.clear();
     }
     else if (protocol.tryParseTRICK(message, serverTrick, cardsOnTable)) {
         protocol.displayTRICK(serverTrick, cardsOnTable, hand);
@@ -34,9 +40,11 @@ void Client::handleServer() {
     }
     else if (protocol.tryParseWRONG(message, serverTrick)) {
         protocol.displayWRONG(serverTrick);
-        hand.append(lastPlayedCard);
-        lastPlayedCard.clear();
-        lastPlayedTrick--;
+        if (!lastPlayedCard.empty()) {
+            hand.append(lastPlayedCard);
+            lastPlayedCard.clear();
+            lastPlayedTrick--;
+        }
     }
     else if (protocol.tryParseTAKEN(message,
                                     serverTrick,
@@ -48,6 +56,13 @@ void Client::handleServer() {
             hand += cardsTaken;
             tricksTaken.push_back(cardsTaken);
         }
+    }
+    else if (protocol.tryParseSCORE(message, scores)) {
+        protocol.displaySCORE(scores);
+    }
+    else if (protocol.tryParseTOTAL(message, totals)) {
+        protocol.displaySCORE(totals);
+        lastTotal = true;
     }
 }
 
@@ -79,7 +94,7 @@ void Client::handleInput() {
     }
 }
 
-void Client::connectToGame() {
+bool Client::connectToGame() {
     protocol.sendIAM(networker.sock_fd, seat);
 
     struct pollfd poll_fd[2];
@@ -88,11 +103,23 @@ void Client::connectToGame() {
     poll_fd[1].fd = protocol.auto_player ? -1 : STDIN_FILENO;
     poll_fd[1].events = POLLIN;
 
-    while (!game_over) {
-        if (poll(poll_fd, 2, -1) < 0) throw Error("poll");
-        if (poll_fd[0].revents & POLLIN) handleServer();
-        else if (poll_fd[1].revents & POLLIN) handleInput();
-        else throw Error("poll revents (server/STDIN)");
+    try {
+        while (true) {
+            if (poll(poll_fd, 2, -1) < 0) throw Error("poll");
+            if (poll_fd[0].revents & POLLIN) handleServer();
+            else if (poll_fd[1].revents & POLLIN) handleInput();
+            else throw Error("poll revents (server/STDIN)");
+        }
+    }
+    catch (Error& e) {
+        std::string msg = e.what();
+        if (isSubstring(msg, "connection closed by peer") && lastTotal) {
+            return true;
+        }
+        else {
+            std::cerr << msg << std::endl;
+            return false;
+        }
     }
 }
 

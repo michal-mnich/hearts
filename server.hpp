@@ -29,7 +29,7 @@ private:
 
     Deal* currentDeal = nullptr;
     std::vector<Deal> deals;
-    std::map<std::string, unsigned int> scores;
+    std::map<std::string, unsigned int> totalScores;
 
     void gameThread();
     void acceptThread();

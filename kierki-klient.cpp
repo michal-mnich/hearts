@@ -10,9 +10,9 @@ int main(int argc, char** argv) {
         ClientConfig config = parser.getConfig();
 
         Client client(config);
-        client.connectToGame();
+        bool correctGame = client.connectToGame();
 
-        return 0;
+        return correctGame ? 0 : 1;
     }
     catch (Error& e) {
         std::cerr << e.what() << std::endl;

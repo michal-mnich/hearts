@@ -18,16 +18,18 @@ void Server::parseFile(const std::string& filename) {
         deal.currentPlayer = deal.firstPlayer;
 
         std::getline(file, line);
-        deal.hand["N"] = line;
+        deal.currentHand["N"] = line;
 
         std::getline(file, line);
-        deal.hand["E"] = line;
+        deal.currentHand["E"] = line;
 
         std::getline(file, line);
-        deal.hand["S"] = line;
+        deal.currentHand["S"] = line;
 
         std::getline(file, line);
-        deal.hand["W"] = line;
+        deal.currentHand["W"] = line;
+
+        deal.originalHand = deal.currentHand;
 
         deals.push_back(deal);
     }
@@ -40,31 +42,30 @@ Server::Server(ServerConfig& config)
 }
 
 void Server::start() {
+    debug("Starting accept thread...");
+    auto accept_thread = std::thread(&Server::acceptThread, this);
+
     for (unsigned int i = 0; i < deals.size(); i++) {
         debug("Starting deal " + std::to_string(i + 1) + "...");
         currentDeal = &deals[i];
-
-        debug("Starting accept thread...");
-        auto accept_thread = std::thread(&Server::acceptThread, this);
 
         debug("Starting game thread...");
         auto game_thread = std::thread(&Server::gameThread, this);
         game_thread.join();
 
-        debug("Game over!");
-        game_over.store(true);
-
-        networker.stopAccepting();
-        accept_thread.join();
-        debug("Accept thread stopped!");
-
-        networker.disconnectAll();
-        networker.joinClients();
-        debug("All clients threads stopped!");
-
         debug("Deal " + std::to_string(i + 1) + " finished!");
-        break;
     }
+
+    debug("Game over!");
+    game_over.store(true);
+
+    networker.stopAccepting();
+    accept_thread.join();
+    debug("Accept thread stopped!");
+
+    networker.disconnectAll();
+    networker.joinClients();
+    debug("All clients threads stopped!");
 }
 
 void Server::acceptThread() {
@@ -80,7 +81,7 @@ void Server::playerThread(int fd) {
         seat = handleIAM(fd);
     }
     catch (Error& e) {
-        std::cerr << e.what() << std::endl;
+        if (!game_over.load()) std::cerr << e.what() << std::endl;
         goto disconnect;
     }
 
@@ -89,7 +90,7 @@ void Server::playerThread(int fd) {
             handleTRICK(fd);
         }
         catch (Error& e) {
-            std::cerr << e.what() << std::endl;
+            if (!game_over.load()) std::cerr << e.what() << std::endl;
             goto disconnect;
         }
     }
@@ -108,7 +109,7 @@ void Server::gameThread() {
         protocol.sendDEAL(fd,
                           currentDeal->type,
                           currentDeal->firstPlayer,
-                          currentDeal->hand[seat]);
+                          currentDeal->originalHand[seat]);
     }
 
     while (currentDeal->currentTrick <= 13) {
@@ -138,19 +139,23 @@ void Server::gameThread() {
         currentDeal->nextPlayer();
 
         if (currentDeal->currentPlayer == currentDeal->firstPlayer) {
-            // end of trick, handle score
-
-            scores[currentDeal->highestPlayer] += currentDeal->getScore();
-
             for (const auto& [seat, fd] : player_fds) {
                 protocol.sendTAKEN(fd,
                                    currentDeal->currentTrick,
                                    currentDeal->cardsOnTable,
                                    currentDeal->highestPlayer);
             }
-
             currentDeal->nextTrick();
         }
+    }
+
+    for (const auto& [seat, fd] : player_fds) {
+        totalScores[seat] += currentDeal->scores[seat];
+    }
+
+    for (const auto& [seat, fd] : player_fds) {
+        protocol.sendSCORE(fd, currentDeal->scores);
+        protocol.sendTOTAL(fd, totalScores);
     }
 }
 
