@@ -8,7 +8,9 @@ public:
     int sock_fd;
     std::string localAddress;
     std::string peerAddress;
-    ClientNetworker(std::string name, std::string service, int domain);
+    ClientNetworker(const std::string& name,
+                    const std::string& service,
+                    int domain);
     ~ClientNetworker();
 };
 

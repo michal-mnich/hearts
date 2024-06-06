@@ -14,17 +14,15 @@ void Client::handleServer() {
     uint8_t type;
     std::string busy, first, cardsTaken, highestPlayer;
     std::string message = recvMessage(networker.sock_fd, -1);
+    protocol.logMessage(message, true);
 
     if (protocol.tryParseBUSY(message, busy)) {
-        protocol.logMessage(message, true);
         protocol.displayBUSY(busy);
     }
     else if (protocol.tryParseDEAL(message, type, first, hand)) {
-        protocol.logMessage(message, true);
         protocol.displayDEAL(type, first, hand);
     }
     else if (protocol.tryParseTRICK(message, serverTrick, cardsOnTable)) {
-        protocol.logMessage(message, true);
         protocol.displayTRICK(serverTrick, cardsOnTable, hand);
         if (protocol.auto_player && serverTrick != lastPlayedTrick) {
             auto card = getAutoCard();
@@ -35,7 +33,6 @@ void Client::handleServer() {
         }
     }
     else if (protocol.tryParseWRONG(message, serverTrick)) {
-        protocol.logMessage(message, true);
         protocol.displayWRONG(serverTrick);
         hand.append(lastPlayedCard);
         lastPlayedCard.clear();
@@ -46,7 +43,6 @@ void Client::handleServer() {
                                     cardsTaken,
                                     highestPlayer))
     {
-        protocol.logMessage(message, true);
         protocol.displayTAKEN(serverTrick, cardsTaken, highestPlayer);
         if (highestPlayer == seat) {
             hand += cardsTaken;

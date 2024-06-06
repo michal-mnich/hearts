@@ -41,15 +41,18 @@ public:
     bool tryParseInputCards(const std::string& input);
     bool tryParseInputTricks(const std::string& input);
 
-    void displayBUSY(std::string& taken);
-    void displayDEAL(uint8_t type, std::string& first, std::string& hand);
+    void displayBUSY(const std::string& taken);
+    void displayDEAL(uint8_t type,
+                     const std::string& first,
+                     const std::string& hand);
     void displayWRONG(uint8_t trick);
     void displayTAKEN(uint8_t trick,
-                      std::string& cardsTaken,
-                      std::string& takingPlayer);
+                      const std::string& cardsTaken,
+                      const std::string& takingPlayer);
     void displaySCORE(const std::map<std::string, unsigned int>& scores);
-    void
-    displayTRICK(uint8_t trick, std::string& cardsOnTable, std::string& hand);
+    void displayTRICK(uint8_t trick,
+                      const std::string& cardsOnTable,
+                      const std::string& hand);
 };
 
 #endif // PROTOCOL_CLIENT_H

@@ -13,7 +13,7 @@ void _bind(int sock_fd, struct sockaddr* addr, socklen_t len);
 void _listen(int sock_fd);
 int _accept(int sock_fd);
 
-bool _validAddress(struct addrinfo* hints, struct addrinfo* res);
+bool _validAddress(const struct addrinfo* hints, struct addrinfo* res);
 std::string _domainToString(int domain);
 
 std::string getPeerAddress(int sock_fd);

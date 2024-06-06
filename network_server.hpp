@@ -23,7 +23,7 @@ private:
     std::vector<std::thread> threads;
 
 public:
-    ServerNetworker(uint16_t port);
+    explicit ServerNetworker(uint16_t port);
     ~ServerNetworker();
     void startAccepting(Server* server);
     void stopAccepting();

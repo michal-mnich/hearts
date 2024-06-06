@@ -164,7 +164,7 @@ bool ClientProtocol::tryParseInputTricks(const std::string& input) {
     return std::regex_match(input, re);
 }
 
-void ClientProtocol::displayBUSY(std::string& taken) {
+void ClientProtocol::displayBUSY(const std::string& taken) {
     if (auto_player) return;
     std::string busy;
     for (size_t i = 0; i < taken.size(); i++) {
@@ -178,8 +178,8 @@ void ClientProtocol::displayBUSY(std::string& taken) {
 }
 
 void ClientProtocol::displayDEAL(uint8_t type,
-                                 std::string& first,
-                                 std::string& hand) {
+                                 const std::string& first,
+                                 const std::string& hand) {
     if (auto_player) return;
     std::cout << "New deal " << std::to_string(type) << ": staring place "
               << first << ", your cards: " << getPrettyCards(hand, true) << "."
@@ -193,8 +193,8 @@ void ClientProtocol::displayWRONG(uint8_t trick) {
 }
 
 void ClientProtocol::displayTAKEN(uint8_t trick,
-                                  std::string& cardsTaken,
-                                  std::string& takingPlayer) {
+                                  const std::string& cardsTaken,
+                                  const std::string& takingPlayer) {
     if (auto_player) return;
     std::cout << "A trick " << std::to_string(trick) << " is taken by "
               << takingPlayer << ", cards " << getPrettyCards(cardsTaken, true)
@@ -211,8 +211,8 @@ void ClientProtocol::displaySCORE(
 }
 
 void ClientProtocol::displayTRICK(uint8_t trick,
-                                  std::string& cardsOnTable,
-                                  std::string& hand) {
+                                  const std::string& cardsOnTable,
+                                  const std::string& hand) {
     if (auto_player) return;
     std::cout << "Trick: (" << std::to_string(trick) << ") "
               << getPrettyCards(cardsOnTable) << std::endl;

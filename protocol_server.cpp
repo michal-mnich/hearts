@@ -24,9 +24,9 @@ void ServerProtocol::logMessage(int client_fd,
 
 void ServerProtocol::recvIAM(int fd, std::string& seat) {
     auto message = recvMessage(fd, timeout);
+    logMessage(fd, message, true);
     if (!tryParseIAM(message, seat))
         throw Error("invalid IAM message: " + message);
-    logMessage(fd, message, true);
 }
 
 void ServerProtocol::sendBUSY(int fd, const std::string& busySeats) {
@@ -60,9 +60,9 @@ void ServerProtocol::recvTRICK(int fd,
                                uint8_t& trick,
                                std::string& cardPlaced) {
     auto message = recvMessage(fd, -1);
+    logMessage(fd, message, true);
     if (!tryParseTRICK(message, trick, cardPlaced))
         throw Error("invalid TRICK message: " + message);
-    logMessage(fd, message, true);
 }
 
 void ServerProtocol::sendWRONG(int fd, uint8_t trick) {

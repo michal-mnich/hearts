@@ -11,7 +11,7 @@
 
 class Server {
 public:
-    Server(ServerConfig& config);
+    explicit Server(ServerConfig& config);
     void start();
 
 private:
@@ -25,7 +25,7 @@ private:
     std::condition_variable cv_allplayers;
 
     std::map<std::string, int> player_fds;
-    int askedTRICK;
+    int askedTRICK = -1;
 
     Deal* currentDeal;
     std::vector<Deal> deals;

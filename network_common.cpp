@@ -68,7 +68,7 @@ static void _getpeername(int sock_fd, struct sockaddr_storage* addr) {
         throw Error("getpeername");
 }
 
-bool _validAddress(struct addrinfo* hints, struct addrinfo* res) {
+bool _validAddress(const struct addrinfo* hints, struct addrinfo* res) {
     // Check if hints and result are valid
     if (!hints || !res) return false;
 
@@ -146,13 +146,13 @@ std::string getLocalAddress(int sock_fd) {
 
 // Write n bytes to a descriptor
 static void writen(int fd, const void* vptr, size_t n) {
-    ssize_t nleft, nwritten;
+    ssize_t nleft;
     const char* ptr;
 
     ptr = static_cast<const char*>(vptr);
     nleft = n;
     while (nleft > 0) {
-        nwritten = write(fd, ptr, nleft);
+        auto nwritten = write(fd, ptr, nleft);
         if (nwritten < 0 && errno == EINTR) {
             continue;
         }
@@ -223,25 +223,26 @@ begin:
 
 std::string recvMessage(int fd, int timeout) {
     std::chrono::system_clock::time_point start, end;
-    std::string message, chunk;
+    std::string message;
     bool timeout_mode = (timeout != -1);
     if (timeout_mode) timeout *= 1000;
     while (true) {
         if (timeout_mode) start = std::chrono::system_clock::now();
+
         waitPollIn(fd, timeout);
-        if (timeout_mode) end = std::chrono::system_clock::now();
 
         if (timeout_mode) {
+            end = std::chrono::system_clock::now();
             auto dur = duration_cast<std::chrono::milliseconds>(end - start);
             timeout -= dur.count();
             if (timeout <= 0) throw Error("recvMessage (timeout)");
         }
 
-        chunk = _read(fd);
+        auto chunk = _read(fd);
         message += chunk;
-        if (message.back() == '\n' || message.size() > MAX_MSG_SIZE)
-            return message;
+        if (message.back() == '\n' || message.size() > MAX_MSG_SIZE) break;
     }
+    return message;
 }
 
 void setNonBlocking(int fd) {

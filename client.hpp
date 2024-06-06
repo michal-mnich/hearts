@@ -7,7 +7,7 @@
 
 class Client {
 public:
-    Client(ClientConfig& config);
+    explicit Client(ClientConfig& config);
     void connectToGame();
 
 private:
@@ -21,7 +21,7 @@ private:
     std::string hand;
     std::string lastPlayedCard;
     uint8_t lastPlayedTrick = 0;
-    uint8_t serverTrick;
+    uint8_t serverTrick = 0;
 
     std::vector<std::string> tricksTaken;
 

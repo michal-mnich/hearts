@@ -4,8 +4,8 @@
 #include <cstring>
 #include <netdb.h>
 
-ClientNetworker::ClientNetworker(std::string host,
-                                 std::string port,
+ClientNetworker::ClientNetworker(const std::string& name,
+                                 const std::string& service,
                                  int domain) {
     struct addrinfo hints;
     struct addrinfo *res, *p;
@@ -16,7 +16,7 @@ ClientNetworker::ClientNetworker(std::string host,
     hints.ai_protocol = IPPROTO_TCP;
 
     // Get address information
-    int status = getaddrinfo(host.c_str(), port.c_str(), &hints, &res);
+    int status = getaddrinfo(name.c_str(), service.c_str(), &hints, &res);
     if (status != 0)
         throw Error("getaddrinfo " + std::string(gai_strerror(status)));
 
@@ -33,7 +33,7 @@ ClientNetworker::ClientNetworker(std::string host,
     }
 
     if (p == nullptr)
-        throw Error("failed to resolve " + host + ":" + port);
+        throw Error("failed to resolve " + name + ":" + service);
 
     freeaddrinfo(res);
 
