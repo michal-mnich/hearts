@@ -15,6 +15,7 @@ bool isRank(char c);
 bool isSuit(char c);
 std::string getPrettyCards(const std::string& cardString, bool sort = false);
 std::string findCardWithSuit(const std::string& cards, char suit);
+char findTrickSuit(const std::string& trick);
 void deleteCard(std::string& cards, const std::string& card);
 std::string getRandomCard(const std::string& cards);
 

@@ -13,26 +13,40 @@ void Deal::nextPlayer() {
     currentPlayer = *it;
 }
 
-bool Deal::isLegal(uint8_t trick, std::string& cardPlaced) {
-    if (trick != currentTrick) return false;
-    if (cardsOnTable.find(cardPlaced) != std::string::npos) return false;
-    if (currentHand[currentPlayer].find(cardPlaced) == std::string::npos)
+bool Deal::isLegal(uint8_t trick, std::string& card) {
+    if (trick != currentTrick) {
+        // wrong trick number
         return false;
-    if (cardsOnTable.empty()) return true;
-    char tableSuit = cardsOnTable.back();
-    char placedSuit = cardPlaced.back();
-    if (tableSuit == placedSuit) return true;
-    if (currentHand[currentPlayer].find(tableSuit) != std::string::npos)
+    }
+    if (cardsOnTable.find(card) != std::string::npos) {
+        // card already on table
         return false;
+    }
+    if (currentHand[currentPlayer].find(card) == std::string::npos) {
+        // player doesn't have card
+        return false;
+    }
+    if (cardsOnTable.empty()) {
+        // first card in trick
+        return true;
+    }
+    if (card.back() == trickSuit) {
+        // player played trick suit
+        return true;
+    }
+    if (currentHand[currentPlayer].find(trickSuit) != std::string::npos) {
+        // player has trick suit, but didn't play it
+        return false;
+    }
     return true;
 }
 
 void Deal::playCard(const std::string& card) {
     deleteCard(currentHand[currentPlayer], card);
 
-    if (cardsOnTable.empty()) trickColor = card.back();
+    if (cardsOnTable.empty()) trickSuit = card.back();
 
-    if (trickColor == card.back()) {
+    if (card.back() == trickSuit) {
         if (highestCard.empty() || compareRanks(highestCard, card)) {
             highestCard = card;
             highestPlayer = currentPlayer;
@@ -73,7 +87,6 @@ unsigned int Deal::getScore() {
 
 void Deal::nextTrick() {
     scores[highestPlayer] += getScore();
-    currentHand[highestPlayer] += cardsOnTable;
     tricksTaken[highestPlayer].push_back(cardsOnTable);
 
     currentTrick++;
@@ -84,5 +97,5 @@ void Deal::nextTrick() {
     cardsOnTable.clear();
     highestCard.clear();
     highestPlayer.clear();
-    trickColor = 0;
+    trickSuit = 0;
 }

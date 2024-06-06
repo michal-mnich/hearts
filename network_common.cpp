@@ -240,7 +240,15 @@ std::string recvMessage(int fd, int timeout) {
 
         auto chunk = _read(fd);
         message += chunk;
-        if (message.back() == '\n' || message.size() > MAX_MSG_SIZE) break;
+
+        auto len = message.size();
+        if (len >= 2 && message.substr(len - 2) == "\r\n") {
+            break;
+        }
+        else if (message.size() > MAX_MSG_SIZE) {
+            message += "\r\n";
+            break;
+        }
     }
     return message;
 }

@@ -96,12 +96,13 @@ void Server::playerThread(int fd) {
     }
 
 disconnect:
+    player_fds.erase(seat);
     networker.disconnectOne(fd);
 }
 
 void Server::gameThread() {
-    std::unique_lock<std::mutex> lock(mtx);
-    cv_allplayers.wait(lock, [this] { return player_fds.size() == 4; });
+    std::unique_lock<std::mutex> lockRunning(mtxRunning);
+    cvRunning.wait(lockRunning, [this] { return player_fds.size() == 4; });
 
     debug("All players are ready!");
 
@@ -132,7 +133,7 @@ void Server::gameThread() {
                 std::cerr << message << std::endl;
             }
             askedTRICK = current_fd;
-        } while (!cv_TRICK.wait_for(lock,
+        } while (!cvTrick.wait_for(lockRunning,
                                     std::chrono::seconds(protocol.timeout),
                                     [this] { return askedTRICK == -1; }));
 
@@ -163,20 +164,20 @@ std::string Server::handleIAM(int fd) {
     std::string seat;
     protocol.recvIAM(fd, seat);
 
-    std::unique_lock<std::mutex> lock(mtx);
+    std::unique_lock<std::mutex> lockRunning(mtxRunning);
 
     if (player_fds.contains(seat)) {
         std::string activePlayers = getKeys(player_fds);
-        lock.unlock();
+        lockRunning.unlock();
         protocol.sendBUSY(fd, activePlayers);
         throw Error("seat " + seat + " already taken");
     }
     else {
         player_fds[seat] = fd;
         if (player_fds.size() == 4) {
-            cv_allplayers.notify_one();
+            cvRunning.notify_one();
         }
-        lock.unlock();
+        lockRunning.unlock();
     }
 
     return seat;
@@ -187,25 +188,25 @@ void Server::handleTRICK(int fd) {
     std::string cardPlaced;
     protocol.recvTRICK(fd, trick, cardPlaced);
 
-    std::unique_lock<std::mutex> lock(mtx);
+    std::unique_lock<std::mutex> lockRunning(mtxRunning);
 
     if (askedTRICK == fd) {
         if (currentDeal->isLegal(trick, cardPlaced)) {
             // asked client sent legal TRICK
             currentDeal->playCard(cardPlaced);
             askedTRICK = -1;
-            cv_TRICK.notify_one();
-            lock.unlock();
+            cvTrick.notify_one();
+            lockRunning.unlock();
         }
         else {
             // asked client sent illegal TRICK
-            lock.unlock();
-            protocol.sendWRONG(fd, trick);
+            lockRunning.unlock();
+            protocol.sendWRONG(fd, currentDeal->currentTrick);
         }
     }
     else {
         // unasked client sent TRICK
-        lock.unlock();
-        protocol.sendWRONG(fd, trick);
+        lockRunning.unlock();
+        protocol.sendWRONG(fd, currentDeal->currentTrick);
     }
 }

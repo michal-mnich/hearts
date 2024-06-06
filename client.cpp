@@ -53,7 +53,6 @@ void Client::handleServer() {
     {
         protocol.displayTAKEN(serverTrick, cardsTaken, highestPlayer);
         if (highestPlayer == seat) {
-            hand += cardsTaken;
             tricksTaken.push_back(cardsTaken);
         }
     }
@@ -126,7 +125,8 @@ bool Client::connectToGame() {
 std::string Client::getAutoCard() {
     std::string card;
     if (!cardsOnTable.empty()) {
-        card = findCardWithSuit(hand, cardsOnTable.back());
+        char trickSuit = findTrickSuit(cardsOnTable);
+        card = findCardWithSuit(hand, trickSuit);
     }
     if (card.empty()) {
         card = getRandomCard(hand);

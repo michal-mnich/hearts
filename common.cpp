@@ -124,14 +124,27 @@ std::string getPrettyCards(const std::string& cardString, bool sort) {
 }
 
 std::string findCardWithSuit(const std::string& cards, char suit) {
-    std::regex cardRegEx("((10|[2-9JQKA])" + std::string(1, suit) + ")");
+    if (!isSuit(suit)) return "";
+
+    std::regex re("(?:10|[2-9JQKA])" + std::string(1, suit));
     std::smatch match;
 
-    if (std::regex_search(cards, match, cardRegEx)) {
+    if (std::regex_search(cards, match, re)) {
         return match.str();
     }
 
-    return std::string();
+    return "";
+}
+
+char findTrickSuit(const std::string& trick) {
+    std::regex re("(?:10|[2-9JQKA])[SHDC]");
+    std::smatch match;
+
+    if (std::regex_search(trick, match, re)) {
+        return match.str().back();
+    }
+
+    return '\0';
 }
 
 void deleteCard(std::string& cards, const std::string& card) {

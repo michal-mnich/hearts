@@ -9,7 +9,7 @@
 
 class Deal {
 public:
-    char trickColor = 0;
+    char trickSuit = 0;
     std::string highestCard;
     std::string highestPlayer;
 
