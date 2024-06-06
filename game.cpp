@@ -87,7 +87,7 @@ unsigned int Deal::getScore() {
 
 void Deal::nextTrick() {
     scores[highestPlayer] += getScore();
-    tricksTaken[highestPlayer].push_back(cardsOnTable);
+    tricksTaken.emplace_back(cardsOnTable, highestPlayer);
 
     currentTrick++;
 

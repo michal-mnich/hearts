@@ -9,9 +9,9 @@ class ServerProtocol {
 private:
     ServerNetworker* networker;
 
+public:
     void logMessage(int client_fd, const std::string& message, bool incoming);
 
-public:
     unsigned int timeout;
     ServerProtocol(ServerNetworker* networker, unsigned int timeout);
 

@@ -82,7 +82,8 @@ void Server::playerThread(int fd) {
     }
     catch (Error& e) {
         if (!game_over.load()) std::cerr << e.what() << std::endl;
-        goto disconnect;
+        networker.disconnectOne(fd);
+        return;
     }
 
     while (true) {
@@ -90,19 +91,21 @@ void Server::playerThread(int fd) {
             handleTRICK(fd);
         }
         catch (Error& e) {
-            if (!game_over.load()) std::cerr << e.what() << std::endl;
-            goto disconnect;
+            std::lock_guard<std::mutex> lock(mtx);
+            if (!game_over.load()) {
+                std::cerr << e.what() << std::endl;
+                isSuspended = true;
+            }
+            player_fds.erase(seat);
+            networker.disconnectOne(fd);
+            return;
         }
     }
-
-disconnect:
-    player_fds.erase(seat);
-    networker.disconnectOne(fd);
 }
 
 void Server::gameThread() {
-    std::unique_lock<std::mutex> lockRunning(mtxRunning);
-    cvRunning.wait(lockRunning, [this] { return player_fds.size() == 4; });
+    std::unique_lock<std::mutex> lock(mtx);
+    cvReady.wait(lock, [this] { return player_fds.size() == 4; });
 
     debug("All players are ready!");
 
@@ -114,28 +117,28 @@ void Server::gameThread() {
     }
 
     while (currentDeal->currentTrick <= 13) {
-        int current_fd = player_fds[currentDeal->currentPlayer];
-
         do {
+            if (isSuspended) {
+                debug("Suspending game thread...");
+                cvSuspended.wait(lock, [this] { return !isSuspended; });
+                debug("Resuming game thread...");
+                // continue;
+            }
+
+            fdExpectedTrick = player_fds[currentDeal->currentPlayer];
+
             try {
-                protocol.sendTRICK(current_fd,
+                protocol.sendTRICK(fdExpectedTrick,
                                    currentDeal->currentTrick,
                                    currentDeal->cardsOnTable);
             }
             catch (Error& e) {
-                std::string message = e.what();
-                // if (isSubstring(message, "would block")) {
-                //     std::cerr << message << std::endl;
-                // }
-                // else {
-                //     throw e;
-                // }
-                std::cerr << message << std::endl;
+                std::cerr << e.what() << std::endl;
             }
-            askedTRICK = current_fd;
-        } while (!cvTrick.wait_for(lockRunning,
-                                    std::chrono::seconds(protocol.timeout),
-                                    [this] { return askedTRICK == -1; }));
+
+        } while (!cvTrick.wait_for(lock,
+                                   std::chrono::seconds(protocol.timeout),
+                                   [this] { return fdExpectedTrick == -1; }));
 
         currentDeal->nextPlayer();
 
@@ -164,49 +167,70 @@ std::string Server::handleIAM(int fd) {
     std::string seat;
     protocol.recvIAM(fd, seat);
 
-    std::unique_lock<std::mutex> lockRunning(mtxRunning);
+    std::unique_lock<std::mutex> lock(mtx);
 
     if (player_fds.contains(seat)) {
         std::string activePlayers = getKeys(player_fds);
-        lockRunning.unlock();
+        lock.unlock();
         protocol.sendBUSY(fd, activePlayers);
         throw Error("seat " + seat + " already taken");
     }
     else {
         player_fds[seat] = fd;
-        if (player_fds.size() == 4) {
-            cvRunning.notify_one();
+        if (isSuspended) {
+            debug("Remaining client arrived!");
+            protocol.sendDEAL(fd,
+                              currentDeal->type,
+                              currentDeal->firstPlayer,
+                              currentDeal->originalHand[seat]);
+            for (size_t i = 0; i < currentDeal->tricksTaken.size(); i++) {
+                auto [cardsTaken, highestPlayer] = currentDeal->tricksTaken[i];
+                protocol.sendTAKEN(fd, i + 1, cardsTaken, highestPlayer);
+            }
+            isSuspended = false;
+            cvSuspended.notify_all();
         }
-        lockRunning.unlock();
+        else if (player_fds.size() == 4) {
+            cvReady.notify_all();
+        }
     }
 
     return seat;
 }
 
 void Server::handleTRICK(int fd) {
+    auto message = recvMessage(fd, -1);
+
+    std::unique_lock<std::mutex> lock(mtx);
+    if (isSuspended) {
+        debug("Suspending handle TRICK...");
+        cvSuspended.wait(lock, [this] { return !isSuspended; });
+        debug("Resuming handle TRICK...");
+    }
+
     uint8_t trick;
     std::string cardPlaced;
-    protocol.recvTRICK(fd, trick, cardPlaced);
+    protocol.logMessage(fd, message, true);
+    if (!protocol.tryParseTRICK(message, trick, cardPlaced)) {
+        throw Error("invalid TRICK message");
+    }
 
-    std::unique_lock<std::mutex> lockRunning(mtxRunning);
-
-    if (askedTRICK == fd) {
+    if (fdExpectedTrick == fd) {
         if (currentDeal->isLegal(trick, cardPlaced)) {
             // asked client sent legal TRICK
             currentDeal->playCard(cardPlaced);
-            askedTRICK = -1;
+            fdExpectedTrick = -1;
             cvTrick.notify_one();
-            lockRunning.unlock();
         }
         else {
             // asked client sent illegal TRICK
-            lockRunning.unlock();
+            lock.unlock();
             protocol.sendWRONG(fd, currentDeal->currentTrick);
         }
     }
     else {
         // unasked client sent TRICK
-        lockRunning.unlock();
+        lock.unlock();
         protocol.sendWRONG(fd, currentDeal->currentTrick);
     }
 }

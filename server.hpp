@@ -20,13 +20,11 @@ private:
 
     std::atomic<bool> game_over;
 
-    std::mutex mtxRunning;
+    std::mutex mtx;
     std::map<std::string, int> player_fds;
-    std::condition_variable cvRunning;
-    int askedTRICK = -1;
+    std::condition_variable cvReady;
+    int fdExpectedTrick = -1;
     std::condition_variable cvTrick;
-
-    std::mutex mtxSuspended;
     bool isSuspended = false;
     std::condition_variable cvSuspended;
 
