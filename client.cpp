@@ -70,8 +70,8 @@ void Client::handleInput() {
     std::cin >> input;
     if (protocol.tryParseInputTRICK(input, card)) {
         if (lastPlayedTrick == serverTrick) {
-            std::cout << "You already played a card in trick "
-                      << std::to_string(serverTrick) + "." << std::endl;
+            std::cout << "You must wait to be asked to play in trick "
+                      << std::to_string(lastPlayedTrick + 1) + "." << std::endl;
         }
         else {
             deleteCard(hand, card);

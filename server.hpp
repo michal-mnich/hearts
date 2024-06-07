@@ -24,6 +24,7 @@ private:
     std::map<std::string, int> player_fds;
     std::condition_variable cvReady;
     int fdExpectedTrick = -1;
+    std::map<std::string, bool> trickDone;
     std::condition_variable cvTrick;
     bool isSuspended = false;
     std::condition_variable cvSuspended;

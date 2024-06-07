@@ -5,6 +5,20 @@
 #include <fstream>
 #include <iostream>
 
+/*
+    nieblokujące wysyłanie przyjmujące mutex jako argument,
+    można czekać na condition_variable z timeoutem
+
+    przedwczesne zakończenie rozdania, gdy punkty zostały rozdane
+
+    przetestować rozłączanie się klientów w różnych scenariuszach,
+    sprawdzić czy 'tricks' 'cards' SCORE i TOTAL są poprawne
+
+    sprawdzić czy są poprawne kody wyjścia serwera (i klienta)
+
+    ulepszyć heurystykę wyboru karty do zagrania w kliencie
+*/
+
 void Server::parseFile(const std::string& filename) {
     std::ifstream file(filename);
     std::string line;
@@ -45,7 +59,7 @@ void Server::start() {
     debug("Starting accept thread...");
     auto accept_thread = std::thread(&Server::acceptThread, this);
 
-    for (unsigned int i = 0; i < deals.size(); i++) {
+    for (size_t i = 0; i < deals.size(); i++) {
         debug("Starting deal " + std::to_string(i + 1) + "...");
         currentDeal = &deals[i];
 
@@ -118,11 +132,17 @@ void Server::gameThread() {
 
     while (currentDeal->currentTrick <= 13) {
         do {
+            trickDone[currentDeal->currentPlayer] = false;
+
             if (isSuspended) {
                 debug("Suspending game thread...");
                 cvSuspended.wait(lock, [this] { return !isSuspended; });
                 debug("Resuming game thread...");
-                // continue;
+            }
+
+            if (trickDone[currentDeal->currentPlayer]) {
+                debug("Got valid trick from current player during suspension!");
+                break;
             }
 
             fdExpectedTrick = player_fds[currentDeal->currentPlayer];
@@ -136,9 +156,10 @@ void Server::gameThread() {
                 std::cerr << e.what() << std::endl;
             }
 
-        } while (!cvTrick.wait_for(lock,
-                                   std::chrono::seconds(protocol.timeout),
-                                   [this] { return fdExpectedTrick == -1; }));
+        } while (!cvTrick.wait_for(
+            lock,
+            std::chrono::seconds(protocol.timeout),
+            [this] { return trickDone[currentDeal->currentPlayer]; }));
 
         currentDeal->nextPlayer();
 
@@ -219,6 +240,7 @@ void Server::handleTRICK(int fd) {
         if (currentDeal->isLegal(trick, cardPlaced)) {
             // asked client sent legal TRICK
             currentDeal->playCard(cardPlaced);
+            trickDone[currentDeal->currentPlayer] = true;
             fdExpectedTrick = -1;
             cvTrick.notify_one();
         }
