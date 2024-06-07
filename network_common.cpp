@@ -1,6 +1,7 @@
 #include "network_common.hpp"
 #include "error.hpp"
 #include <chrono>
+#include <condition_variable>
 #include <fcntl.h>
 #include <netdb.h>
 #include <poll.h>
@@ -180,13 +181,13 @@ void waitPollIn(int fd, int timeout) {
     pollfd.events = POLLIN;
     int ret = poll(&pollfd, 1, timeout);
     if (ret < 0) {
-        throw Error("poll");
+        throw Error("poll in");
     }
-    if (ret == 0) {
-        throw Error("poll (timeout)");
+    else if (ret == 0) {
+        throw Error("poll in (timeout)");
     }
-    if (!(pollfd.revents & POLLIN)) {
-        throw Error("poll (revents)");
+    else if (!(pollfd.revents & POLLIN)) {
+        throw Error("poll in (revents)");
     }
 }
 
@@ -196,10 +197,13 @@ void waitPollOut(int fd) {
     pollfd.events = POLLOUT;
     int ret = poll(&pollfd, 1, -1);
     if (ret < 0) {
-        throw Error("poll");
+        throw Error("poll out");
     }
-    if (!(pollfd.revents & POLLOUT)) {
-        throw Error("poll (revents)");
+    else if (ret == 0) {
+        throw Error("poll out (timeout)");
+    }
+    else if (!(pollfd.revents & POLLOUT)) {
+        throw Error("poll out (revents)");
     }
 }
 
@@ -211,11 +215,14 @@ begin:
     if (nread < 0 && errno == EINTR) {
         goto begin;
     }
-    if (nread < 0) {
-        throw Error("read");
+    else if (nread < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        throw Error("read (would block)");
     }
-    if (nread == 0) {
+    else if (nread == 0) {
         throw Error("read (connection closed by peer)");
+    }
+    else if (nread < 0) {
+        throw Error("read");
     }
     std::string res(buffer, nread);
     return res;
@@ -255,14 +262,48 @@ std::string recvMessage(int fd, int timeout) {
 
 void setNonBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
-    if (flags < 0) throw Error("fcntl (setNonBlocking)");
-    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0)
-        throw Error("fcntl (F_SETFL)");
+    if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0)
+        throw Error("fcntl (setNonBlocking)");
 }
 
 void unsetNonBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
-    if (flags < 0) throw Error("fcntl (unsetNonBlocking)");
-    if (fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) < 0)
-        throw Error("fcntl (F_SETFL)");
+    if (flags < 0 || fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) < 0)
+        throw Error("fcntl (unsetNonBlocking)");
+}
+
+template <typename SendFn, typename... Args>
+std::unique_lock<std::mutex> retrySend(std::mutex& mtx,
+                                       unsigned int timeout,
+                                       SendFn&& sendFn,
+                                       int fd,
+                                       Args&&... args) {
+
+    bool done = false;
+    std::condition_variable cv;
+    std::unique_lock<std::mutex> lock(mtx);
+
+    setNonBlocking(fd);
+
+    do {
+        try {
+            std::forward<Fn>(sendFn)(fd, std::forward<Args>(args)...);
+            done = true;
+        }
+        catch (Error& e) {
+            if (e.saved_errno == EAGAIN || e.saved_errno == EWOULDBLOCK) {
+                cv.wait_for(lock, std::chrono::seconds(timeout), [&done] {
+                    return done;
+                });
+            }
+            else {
+                unsetNonBlocking(fd);
+                throw;
+            }
+        }
+    } while (!done);
+
+    unsetNonBlocking(fd);
+
+    return lock;
 }

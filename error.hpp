@@ -6,6 +6,7 @@
 
 class Error : public std::runtime_error {
 public:
+    int saved_errno;
     Error(const std::string& message);
 };
 

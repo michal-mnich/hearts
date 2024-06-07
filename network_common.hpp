@@ -2,6 +2,7 @@
 #define NETWORK_COMMON_H
 
 #include <arpa/inet.h>
+#include <mutex>
 #include <string>
 
 #define QUEUE_SIZE 4
@@ -25,7 +26,14 @@ void waitPollOut(int fd);
 std::string recvMessage(int fd, int timeout);
 void sendMessage(int fd, const std::string& message);
 
-void setNonBlocking(int fd);
-void unsetNonBlocking(int fd);
+// void setNonBlocking(int fd);
+// void unsetNonBlocking(int fd);
+
+template <typename SendFn, typename... Args>
+std::unique_lock<std::mutex> retrySend(std::mutex& mtx,
+                                       unsigned int timeout,
+                                       SendFn&& sendFn,
+                                       int fd,
+                                       Args&&... args);
 
 #endif // NETWORK_COMMON_H

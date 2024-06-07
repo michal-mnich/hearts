@@ -50,9 +50,7 @@ void ServerProtocol::sendTRICK(int fd,
                                const std::string& cardsOnTable) {
     std::string message =
         "TRICK" + std::to_string(trick) + cardsOnTable + "\r\n";
-    setNonBlocking(fd);
     sendMessage(fd, message);
-    unsetNonBlocking(fd);
     logMessage(fd, message, false);
 }
 

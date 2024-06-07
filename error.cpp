@@ -15,7 +15,7 @@ std::string createErrorMessage(const std::string& message) {
 }
 
 Error::Error(const std::string& message)
-    : std::runtime_error(createErrorMessage(message)) {}
+    : saved_errno(errno), std::runtime_error(createErrorMessage(message)) {}
 
 #ifdef DEBUG
 void debug(const std::string& message) {
