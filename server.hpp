@@ -18,22 +18,24 @@ private:
     ServerNetworker networker;
     ServerProtocol protocol;
 
-    std::atomic<bool> game_over;
+    bool dealStarted = false;
+    bool dealSuspended = false;
+    std::atomic<bool> gameOver;
+
+    std::map<std::string, int> player_fds;
+    std::map<std::string, bool> trickDone;
+    int fdExpectedTrick = -1;
 
     std::mutex mtx;
-    std::map<std::string, int> player_fds;
     std::condition_variable cvReady;
-    int fdExpectedTrick = -1;
-    std::map<std::string, bool> trickDone;
     std::condition_variable cvTrick;
-    bool isSuspended = false;
     std::condition_variable cvSuspended;
 
     Deal* currentDeal = nullptr;
     std::vector<Deal> deals;
     std::map<std::string, unsigned int> totalScores;
 
-    void gameThread();
+    void dealThread();
     void acceptThread();
     std::string handleIAM(int fd);
     void handleTRICK(int fd);

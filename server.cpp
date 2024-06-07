@@ -53,7 +53,7 @@ void Server::parseFile(const std::string& filename) {
 
 Server::Server(ServerConfig& config)
     : networker(config.port), protocol(&networker, config.timeout),
-      game_over(false) {
+      gameOver(false) {
     parseFile(config.file);
 }
 
@@ -65,15 +65,15 @@ void Server::start() {
         debug("Starting deal " + std::to_string(i + 1) + "...");
         currentDeal = &deals[i];
 
-        debug("Starting game thread...");
-        auto game_thread = std::thread(&Server::gameThread, this);
-        game_thread.join();
+        debug("Starting deal thread...");
+        auto deal_thread = std::thread(&Server::dealThread, this);
+        deal_thread.join();
 
         debug("Deal " + std::to_string(i + 1) + " finished!");
     }
 
     debug("Game over!");
-    game_over.store(true);
+    gameOver.store(true);
 
     networker.stopAccepting();
     accept_thread.join();
@@ -86,8 +86,7 @@ void Server::start() {
 
 void Server::acceptThread() {
     networker.startAccepting(this);
-    if (!game_over.load())
-        throw Error("unexpectedly stopped accepting clients");
+    if (!gameOver.load()) throw Error("unexpectedly stopped accepting clients");
 }
 
 void Server::playerThread(int fd) {
@@ -97,7 +96,7 @@ void Server::playerThread(int fd) {
         seat = handleIAM(fd);
     }
     catch (Error& e) {
-        if (!game_over.load()) std::cerr << e.what() << std::endl;
+        if (!gameOver.load()) std::cerr << e.what() << std::endl;
         networker.disconnectOne(fd);
         return;
     }
@@ -108,9 +107,9 @@ void Server::playerThread(int fd) {
         }
         catch (Error& e) {
             std::lock_guard<std::mutex> lock(mtx);
-            if (!game_over.load()) {
+            if (!gameOver.load()) {
                 std::cerr << e.what() << std::endl;
-                isSuspended = true;
+                if (dealStarted) dealSuspended = true;
             }
             player_fds.erase(seat);
             networker.disconnectOne(fd);
@@ -119,9 +118,10 @@ void Server::playerThread(int fd) {
     }
 }
 
-void Server::gameThread() {
+void Server::dealThread() {
     std::unique_lock<std::mutex> lock(mtx);
     cvReady.wait(lock, [this] { return player_fds.size() == 4; });
+    dealStarted = true;
 
     debug("All players are ready!");
 
@@ -137,9 +137,9 @@ void Server::gameThread() {
         do {
             trickDone[currentDeal->currentPlayer] = false;
 
-            if (isSuspended) {
+            if (dealSuspended) {
                 debug("Suspending game thread...");
-                cvSuspended.wait(lock, [this] { return !isSuspended; });
+                cvSuspended.wait(lock, [this] { return !dealSuspended; });
                 debug("Resuming game thread...");
             }
 
@@ -187,6 +187,8 @@ void Server::gameThread() {
         protocol.sendSCORE(fd, currentDeal->scores, &lock);
         protocol.sendTOTAL(fd, totalScores, &lock);
     }
+
+    dealStarted = false;
 }
 
 std::string Server::handleIAM(int fd) {
@@ -202,7 +204,7 @@ std::string Server::handleIAM(int fd) {
     }
     else {
         player_fds[seat] = fd;
-        if (isSuspended) {
+        if (dealSuspended) {
             debug("Remaining client arrived!");
             protocol.sendDEAL(fd,
                               currentDeal->type,
@@ -213,7 +215,15 @@ std::string Server::handleIAM(int fd) {
                 auto [cardsTaken, highestPlayer] = currentDeal->tricksTaken[i];
                 protocol.sendTAKEN(fd, i + 1, cardsTaken, highestPlayer, &lock);
             }
-            isSuspended = false;
+            if (seat == currentDeal->currentPlayer) {
+                trickDone[seat] = false;
+                fdExpectedTrick = fd;
+                protocol.sendTRICK(fd,
+                                   currentDeal->currentTrick,
+                                   currentDeal->cardsOnTable,
+                                   &lock);
+            }
+            dealSuspended = false;
             cvSuspended.notify_all();
         }
         else if (player_fds.size() == 4) {
@@ -228,9 +238,9 @@ void Server::handleTRICK(int fd) {
     auto message = recvMessage(fd, -1);
 
     std::unique_lock<std::mutex> lock(mtx);
-    if (isSuspended) {
+    if (dealSuspended) {
         debug("Suspending handle TRICK...");
-        cvSuspended.wait(lock, [this] { return !isSuspended; });
+        cvSuspended.wait(lock, [this] { return !dealSuspended; });
         debug("Resuming handle TRICK...");
     }
 
