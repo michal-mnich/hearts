@@ -43,6 +43,7 @@ void ServerNetworker::startAccepting(Server* server) {
             if (fd.revents & POLLIN) {
                 std::lock_guard<std::mutex> lock(mtx);
                 int accepted_fd = _accept(fd.fd);
+                setNonBlocking(accepted_fd);
                 clients[accepted_fd] = {getLocalAddress(accepted_fd),
                                         getPeerAddress(accepted_fd)};
                 debug(clients[accepted_fd].first +

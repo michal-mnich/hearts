@@ -245,7 +245,19 @@ std::string recvMessage(int fd, int timeout) {
             if (timeout <= 0) throw Error("recvMessage (timeout)");
         }
 
-        auto chunk = _read(fd);
+        std::string chunk;
+        try {
+            chunk = _read(fd);
+        }
+        catch (Error& e) {
+            if (e.saved_errno == EAGAIN || e.saved_errno == EWOULDBLOCK) {
+                continue;
+            }
+            else {
+                throw;
+            }
+        }
+
         message += chunk;
 
         auto len = message.size();
@@ -283,8 +295,6 @@ std::unique_lock<std::mutex> retrySend(std::mutex& mtx,
     std::condition_variable cv;
     std::unique_lock<std::mutex> lock(mtx);
 
-    setNonBlocking(fd);
-
     do {
         try {
             std::forward<SendFn>(sendFn)(fd, std::forward<Args>(args)...);
@@ -302,8 +312,6 @@ std::unique_lock<std::mutex> retrySend(std::mutex& mtx,
             }
         }
     } while (!done);
-
-    unsetNonBlocking(fd);
 
     return lock;
 }

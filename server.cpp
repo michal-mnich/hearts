@@ -17,6 +17,8 @@
     sprawdzić czy są poprawne kody wyjścia serwera (i klienta)
 
     ulepszyć heurystykę wyboru karty do zagrania w kliencie
+
+    obsługa wyjątków w wątkach (propagowanie wyjątków między threadami?)
 */
 
 void Server::parseFile(const std::string& filename) {
