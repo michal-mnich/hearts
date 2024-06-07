@@ -24,16 +24,11 @@ void waitPollIn(int fd, int timeout);
 void waitPollOut(int fd);
 
 std::string recvMessage(int fd, int timeout);
-void sendMessage(int fd, const std::string& message);
+void sendMessage(int fd,
+                 const std::string& message,
+                 std::unique_lock<std::mutex>* lock = nullptr);
 
 void setNonBlocking(int fd);
 void unsetNonBlocking(int fd);
-
-template <typename SendFn, typename... Args>
-std::unique_lock<std::mutex> retrySend(std::mutex& mtx,
-                                       unsigned int timeout,
-                                       SendFn&& sendFn,
-                                       int fd,
-                                       Args&&... args);
 
 #endif // NETWORK_COMMON_H

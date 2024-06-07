@@ -129,7 +129,8 @@ void Server::gameThread() {
         protocol.sendDEAL(fd,
                           currentDeal->type,
                           currentDeal->firstPlayer,
-                          currentDeal->originalHand[seat]);
+                          currentDeal->originalHand[seat],
+                          &lock);
     }
 
     while (currentDeal->currentTrick <= 13) {
@@ -152,7 +153,8 @@ void Server::gameThread() {
             try {
                 protocol.sendTRICK(fdExpectedTrick,
                                    currentDeal->currentTrick,
-                                   currentDeal->cardsOnTable);
+                                   currentDeal->cardsOnTable,
+                                   &lock);
             }
             catch (Error& e) {
                 std::cerr << e.what() << std::endl;
@@ -170,7 +172,8 @@ void Server::gameThread() {
                 protocol.sendTAKEN(fd,
                                    currentDeal->currentTrick,
                                    currentDeal->cardsOnTable,
-                                   currentDeal->highestPlayer);
+                                   currentDeal->highestPlayer,
+                                   &lock);
             }
             currentDeal->nextTrick();
         }
@@ -181,8 +184,8 @@ void Server::gameThread() {
     }
 
     for (const auto& [seat, fd] : player_fds) {
-        protocol.sendSCORE(fd, currentDeal->scores);
-        protocol.sendTOTAL(fd, totalScores);
+        protocol.sendSCORE(fd, currentDeal->scores, &lock);
+        protocol.sendTOTAL(fd, totalScores, &lock);
     }
 }
 
@@ -194,8 +197,7 @@ std::string Server::handleIAM(int fd) {
 
     if (player_fds.contains(seat)) {
         std::string activePlayers = getKeys(player_fds);
-        lock.unlock();
-        protocol.sendBUSY(fd, activePlayers);
+        protocol.sendBUSY(fd, activePlayers, &lock);
         throw Error("seat " + seat + " already taken");
     }
     else {
@@ -205,10 +207,11 @@ std::string Server::handleIAM(int fd) {
             protocol.sendDEAL(fd,
                               currentDeal->type,
                               currentDeal->firstPlayer,
-                              currentDeal->originalHand[seat]);
+                              currentDeal->originalHand[seat],
+                              &lock);
             for (size_t i = 0; i < currentDeal->tricksTaken.size(); i++) {
                 auto [cardsTaken, highestPlayer] = currentDeal->tricksTaken[i];
-                protocol.sendTAKEN(fd, i + 1, cardsTaken, highestPlayer);
+                protocol.sendTAKEN(fd, i + 1, cardsTaken, highestPlayer, &lock);
             }
             isSuspended = false;
             cvSuspended.notify_all();
@@ -248,13 +251,11 @@ void Server::handleTRICK(int fd) {
         }
         else {
             // asked client sent illegal TRICK
-            lock.unlock();
-            protocol.sendWRONG(fd, currentDeal->currentTrick);
+            protocol.sendWRONG(fd, currentDeal->currentTrick, &lock);
         }
     }
     else {
         // unasked client sent TRICK
-        lock.unlock();
-        protocol.sendWRONG(fd, currentDeal->currentTrick);
+        protocol.sendWRONG(fd, currentDeal->currentTrick, &lock);
     }
 }

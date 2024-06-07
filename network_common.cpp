@@ -146,9 +146,11 @@ std::string getLocalAddress(int sock_fd) {
 }
 
 // Write n bytes to a descriptor
-static void writen(int fd, const void* vptr, size_t n) {
+static void
+writen(int fd, const void* vptr, size_t n, std::unique_lock<std::mutex>* lock) {
     ssize_t nleft;
     const char* ptr;
+    std::condition_variable cv;
 
     ptr = static_cast<const char*>(vptr);
     nleft = n;
@@ -158,7 +160,15 @@ static void writen(int fd, const void* vptr, size_t n) {
             continue;
         }
         else if (nwritten < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            throw Error("write (would block)");
+            if (lock != nullptr) {
+                cv.wait_for(*lock, std::chrono::seconds(1), [&nleft] {
+                    return nleft == 0;
+                });
+            }
+            else {
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            }
+            continue;
         }
         else if (nwritten < 0 && errno == EPIPE) {
             throw Error("write (connection closed by peer)");
@@ -171,8 +181,10 @@ static void writen(int fd, const void* vptr, size_t n) {
     }
 }
 
-void sendMessage(int fd, const std::string& message) {
-    writen(fd, message.c_str(), message.size());
+void sendMessage(int fd,
+                 const std::string& message,
+                 std::unique_lock<std::mutex>* lock) {
+    writen(fd, message.c_str(), message.size(), lock);
 }
 
 void waitPollIn(int fd, int timeout) {
@@ -282,36 +294,4 @@ void unsetNonBlocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
     if (flags < 0 || fcntl(fd, F_SETFL, flags & ~O_NONBLOCK) < 0)
         throw Error("fcntl (unsetNonBlocking)");
-}
-
-template <typename SendFn, typename... Args>
-std::unique_lock<std::mutex> retrySend(std::mutex& mtx,
-                                       unsigned int timeout,
-                                       SendFn&& sendFn,
-                                       int fd,
-                                       Args&&... args) {
-
-    bool done = false;
-    std::condition_variable cv;
-    std::unique_lock<std::mutex> lock(mtx);
-
-    do {
-        try {
-            std::forward<SendFn>(sendFn)(fd, std::forward<Args>(args)...);
-            done = true;
-        }
-        catch (Error& e) {
-            if (e.saved_errno == EAGAIN || e.saved_errno == EWOULDBLOCK) {
-                cv.wait_for(lock, std::chrono::seconds(timeout), [&done] {
-                    return done;
-                });
-            }
-            else {
-                unsetNonBlocking(fd);
-                throw;
-            }
-        }
-    } while (!done);
-
-    return lock;
 }

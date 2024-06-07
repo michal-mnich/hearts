@@ -25,32 +25,35 @@ void ServerProtocol::logMessage(int client_fd,
 void ServerProtocol::recvIAM(int fd, std::string& seat) {
     auto message = recvMessage(fd, timeout);
     logMessage(fd, message, true);
-    if (!tryParseIAM(message, seat))
-        throw Error("invalid IAM message");
+    if (!tryParseIAM(message, seat)) throw Error("invalid IAM message");
 }
 
-void ServerProtocol::sendBUSY(int fd, const std::string& busySeats) {
+void ServerProtocol::sendBUSY(int fd,
+                              const std::string& busySeats,
+                              std::unique_lock<std::mutex>* lock) {
     std::string message = "BUSY" + busySeats + "\r\n";
-    sendMessage(fd, message);
+    sendMessage(fd, message, lock);
     logMessage(fd, message, false);
 }
 
 void ServerProtocol::sendDEAL(int fd,
                               uint8_t type,
                               const std::string& first,
-                              const std::string& cards) {
+                              const std::string& cards,
+                              std::unique_lock<std::mutex>* lock) {
     std::string message =
         "DEAL" + std::to_string(type) + first + cards + "\r\n";
-    sendMessage(fd, message);
+    sendMessage(fd, message, lock);
     logMessage(fd, message, false);
 }
 
 void ServerProtocol::sendTRICK(int fd,
                                uint8_t trick,
-                               const std::string& cardsOnTable) {
+                               const std::string& cardsOnTable,
+                               std::unique_lock<std::mutex>* lock) {
     std::string message =
         "TRICK" + std::to_string(trick) + cardsOnTable + "\r\n";
-    sendMessage(fd, message);
+    sendMessage(fd, message, lock);
     logMessage(fd, message, false);
 }
 
@@ -63,41 +66,46 @@ void ServerProtocol::recvTRICK(int fd,
         throw Error("invalid TRICK message");
 }
 
-void ServerProtocol::sendWRONG(int fd, uint8_t trick) {
+void ServerProtocol::sendWRONG(int fd,
+                               uint8_t trick,
+                               std::unique_lock<std::mutex>* lock) {
     std::string message = "WRONG" + std::to_string(trick) + "\r\n";
-    sendMessage(fd, message);
+    sendMessage(fd, message, lock);
     logMessage(fd, message, false);
 }
 
 void ServerProtocol::sendTAKEN(int fd,
                                uint8_t trick,
                                const std::string& cardsTaken,
-                               const std::string& seat) {
+                               const std::string& seat,
+                               std::unique_lock<std::mutex>* lock) {
     std::string message =
         "TAKEN" + std::to_string(trick) + cardsTaken + seat + "\r\n";
-    sendMessage(fd, message);
+    sendMessage(fd, message, lock);
     logMessage(fd, message, false);
 }
 
 void ServerProtocol::sendSCORE(int fd,
-                               std::map<std::string, unsigned int>& scores) {
+                               std::map<std::string, unsigned int>& scores,
+                               std::unique_lock<std::mutex>* lock) {
     std::string message = "SCORE";
     for (auto& [seat, score] : scores) {
         message += seat + std::to_string(score);
     }
     message += "\r\n";
-    sendMessage(fd, message);
+    sendMessage(fd, message, lock);
     logMessage(fd, message, false);
 }
 
 void ServerProtocol::sendTOTAL(int fd,
-                               std::map<std::string, unsigned int>& totals) {
+                               std::map<std::string, unsigned int>& totals,
+                               std::unique_lock<std::mutex>* lock) {
     std::string message = "TOTAL";
     for (auto& [seat, total] : totals) {
         message += seat + std::to_string(total);
     }
     message += "\r\n";
-    sendMessage(fd, message);
+    sendMessage(fd, message, lock);
     logMessage(fd, message, false);
 }
 
