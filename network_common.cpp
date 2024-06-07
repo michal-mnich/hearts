@@ -18,7 +18,8 @@ void _close(int sock_fd) {
 }
 
 void _shutdown(int sock_fd, int how) {
-    if (shutdown(sock_fd, how) < 0) throw Error("shutdown");
+    if (shutdown(sock_fd, how) < 0 && errno != ENOTCONN)
+        throw Error("shutdown");
 }
 
 int _socket(int domain) {
