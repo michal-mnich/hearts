@@ -9,6 +9,7 @@
 
 #define BUF_SIZE     1
 #define MAX_MSG_SIZE 64
+#define COOLDOWN     1
 
 /* System functions wrappers with error handling */
 
@@ -160,14 +161,16 @@ writen(int fd, const void* vptr, size_t n, std::unique_lock<std::mutex>* lock) {
             continue;
         }
         else if (nwritten < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            debug("write blocked, " + std::string(lock ? "lock" : "no lock"));
             if (lock != nullptr) {
-                cv.wait_for(*lock, std::chrono::seconds(1), [&nleft] {
+                cv.wait_for(*lock, std::chrono::seconds(COOLDOWN), [&nleft] {
                     return nleft == 0;
                 });
             }
             else {
-                std::this_thread::sleep_for(std::chrono::seconds(1));
+                std::this_thread::sleep_for(std::chrono::seconds(COOLDOWN));
             }
+            debug("retrying write...");
             continue;
         }
         else if (nwritten < 0 && errno == EPIPE) {

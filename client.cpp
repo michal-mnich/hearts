@@ -74,10 +74,15 @@ void Client::handleInput() {
                       << std::to_string(lastPlayedTrick + 1) + "." << std::endl;
         }
         else {
-            deleteCard(hand, card);
-            lastPlayedCard = card;
-            lastPlayedTrick = serverTrick;
-            protocol.sendTRICK(networker.sock_fd, serverTrick, card);
+            if (hand.find(card) == std::string::npos) {
+                std::cout << "You do not have that card on hand." << std::endl;
+            }
+            else {
+                deleteCard(hand, card);
+                lastPlayedCard = card;
+                lastPlayedTrick = serverTrick;
+                protocol.sendTRICK(networker.sock_fd, serverTrick, card);
+            }
         }
     }
     else if (protocol.tryParseInputCards(input)) {
