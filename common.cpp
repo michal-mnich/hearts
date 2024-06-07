@@ -4,6 +4,7 @@
 #include <random>
 #include <regex>
 #include <unordered_map>
+#include <iomanip>
 
 static std::unordered_map<std::string, int> rankMap = {
     {"2",  2 },

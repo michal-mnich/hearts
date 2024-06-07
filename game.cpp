@@ -85,6 +85,40 @@ unsigned int Deal::getScore() {
     throw Error("unexpected type: " + std::to_string(type));
 }
 
+// bool Deal::isOver() {
+//     auto b = cardsOnTable.begin();
+//     auto e = cardsOnTable.end();
+//     switch (type) {
+//         case 1:
+//             return false;
+//         case 2:
+//             for (auto& [s, h] : currentHand) {
+//                 if (std::find(h.begin(), h.end(), 'H') != h.end()) {
+//                     return false;
+//                 }
+//             }
+//             return true;
+//         case 3:
+//             return std::count(b, e, 'Q') * 5;
+//         case 4:
+//             return (std::count(b, e, 'J') + std::count(b, e, 'K')) * 2;
+//         case 5:
+//             return (cardsOnTable.find("KH") != std::string::npos) * 18;
+//         case 6:
+//             return (currentTrick == 7 || currentTrick == 13) * 10;
+//         case 7:
+//             unsigned int score = 0;
+//             score += 1;
+//             score += std::count(b, e, 'H');
+//             score += std::count(b, e, 'Q') * 5;
+//             score += (std::count(b, e, 'J') + std::count(b, e, 'K')) * 2;
+//             score += (cardsOnTable.find("KH") != std::string::npos) * 18;
+//             score += (currentTrick == 7 || currentTrick == 13) * 10;
+//             return score;
+//     }
+//     throw Error("unexpected type: " + std::to_string(type));
+// }
+
 void Deal::nextTrick() {
     scores[highestPlayer] += getScore();
     tricksTaken.emplace_back(cardsOnTable, highestPlayer);

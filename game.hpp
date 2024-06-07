@@ -28,6 +28,7 @@ public:
     bool isLegal(uint8_t trick, std::string& cardPlaced);
     void playCard(const std::string& card);
     unsigned int getScore();
+    bool isOver();
     void nextTrick();
 };
 
