@@ -22,4 +22,6 @@ std::string getRandomCard(const std::string& cards);
 // return rank(c1) < rank(c2)
 bool compareRanks(const std::string& c1, const std::string& c2);
 
+void removeFromHand(std::string& hand, const std::string& card);
+
 #endif // COMMON_H

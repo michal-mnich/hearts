@@ -182,3 +182,15 @@ bool compareRanks(const std::string& c1, const std::string& c2) {
     int r2 = rankMap[c2.substr(0, c2.size() - 1)];
     return r1 < r2;
 }
+
+void removeFromHand(std::string& hand, const std::string& cards) {
+    std::regex re("(?:10|[2-9JQKA])[SHDC]");
+    std::sregex_iterator it(cards.begin(), cards.end(), re);
+    std::sregex_iterator end;
+
+    while (it != end) {
+        std::smatch match = *it;
+        deleteCard(hand, match.str());
+        ++it;
+    }
+}
