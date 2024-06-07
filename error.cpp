@@ -3,19 +3,22 @@
 #include <cstring>
 #include <iostream>
 
-std::string createErrorMessage(const std::string& message) {
+std::string Error::createErrorMessage(const std::string& message) {
+    saved_errno = errno;
+    errno = 0;
+
     std::string error = "ERROR: " + message;
-    if (errno) {
-        auto code = std::to_string(errno);
-        auto desc = std::strerror(errno);
+    if (saved_errno != 0) {
+        auto code = std::to_string(saved_errno);
+        auto desc = std::strerror(saved_errno);
         error = error + " (" + code + "; " + desc + ")";
-        errno = 0;
     }
+
     return error;
 }
 
 Error::Error(const std::string& message)
-    : saved_errno(errno), std::runtime_error(createErrorMessage(message)) {}
+    : std::runtime_error(createErrorMessage(message)) {}
 
 #ifdef DEBUG
 void debug(const std::string& message) {

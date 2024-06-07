@@ -287,7 +287,7 @@ std::unique_lock<std::mutex> retrySend(std::mutex& mtx,
 
     do {
         try {
-            std::forward<Fn>(sendFn)(fd, std::forward<Args>(args)...);
+            std::forward<SendFn>(sendFn)(fd, std::forward<Args>(args)...);
             done = true;
         }
         catch (Error& e) {
