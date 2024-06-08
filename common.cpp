@@ -158,8 +158,7 @@ void deleteCard(std::string& cards, const std::string& card) {
 std::string getRandomCard(const std::string& cards) {
     std::string card;
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(58008); // use fixed seed for reproducibility
     std::uniform_int_distribution<> distr(0, cards.size() - 1);
 
     size_t index = distr(gen);
