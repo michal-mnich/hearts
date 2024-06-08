@@ -50,6 +50,7 @@ public:
                       const std::string& cardsTaken,
                       const std::string& takingPlayer);
     void displaySCORE(const std::map<std::string, unsigned int>& scores);
+    void displayTOTAL(const std::map<std::string, unsigned int>& totals);
     void displayTRICK(uint8_t trick,
                       const std::string& cardsOnTable,
                       const std::string& hand);

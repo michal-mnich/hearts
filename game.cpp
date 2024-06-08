@@ -85,39 +85,47 @@ unsigned int Deal::getScore() {
     throw Error("unexpected type: " + std::to_string(type));
 }
 
-// bool Deal::isOver() {
-//     auto b = cardsOnTable.begin();
-//     auto e = cardsOnTable.end();
-//     switch (type) {
-//         case 1:
-//             return false;
-//         case 2:
-//             for (auto& [s, h] : currentHand) {
-//                 if (std::find(h.begin(), h.end(), 'H') != h.end()) {
-//                     return false;
-//                 }
-//             }
-//             return true;
-//         case 3:
-//             return std::count(b, e, 'Q') * 5;
-//         case 4:
-//             return (std::count(b, e, 'J') + std::count(b, e, 'K')) * 2;
-//         case 5:
-//             return (cardsOnTable.find("KH") != std::string::npos) * 18;
-//         case 6:
-//             return (currentTrick == 7 || currentTrick == 13) * 10;
-//         case 7:
-//             unsigned int score = 0;
-//             score += 1;
-//             score += std::count(b, e, 'H');
-//             score += std::count(b, e, 'Q') * 5;
-//             score += (std::count(b, e, 'J') + std::count(b, e, 'K')) * 2;
-//             score += (cardsOnTable.find("KH") != std::string::npos) * 18;
-//             score += (currentTrick == 7 || currentTrick == 13) * 10;
-//             return score;
-//     }
-//     throw Error("unexpected type: " + std::to_string(type));
-// }
+bool Deal::isOver() {
+    switch (type) {
+        case 1:
+            return false;
+        case 2:
+            for (auto& [s, h] : currentHand) {
+                if (std::find(h.begin(), h.end(), 'H') != h.end()) {
+                    return false;
+                }
+            }
+            return true;
+        case 3:
+            for (auto& [s, h] : currentHand) {
+                if (std::find(h.begin(), h.end(), 'Q') != h.end()) {
+                    return false;
+                }
+            }
+            return true;
+        case 4:
+            for (auto& [s, h] : currentHand) {
+                if (std::find(h.begin(), h.end(), 'J') != h.end() ||
+                    std::find(h.begin(), h.end(), 'K') != h.end())
+                {
+                    return false;
+                }
+            }
+            return true;
+        case 5:
+            for (auto& [s, h] : currentHand) {
+                if (h.find("KH") != std::string::npos) {
+                    return false;
+                }
+            }
+            return true;
+        case 6:
+            return false;
+        case 7:
+            return false;
+    }
+    throw Error("unexpected type: " + std::to_string(type));
+}
 
 void Deal::nextTrick() {
     scores[highestPlayer] += getScore();

@@ -176,6 +176,7 @@ void Server::dealThread() {
                                    &lock);
             }
             currentDeal->nextTrick();
+            if (currentDeal->isOver()) break;
         }
     }
 

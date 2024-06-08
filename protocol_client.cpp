@@ -173,6 +173,7 @@ void ClientProtocol::displayBUSY(const std::string& taken) {
             busy += ", ";
         }
     }
+    std::cout << "BUSY" << taken << std::endl;
     std::cout << "Place busy, list of busy places received: " << busy << "."
               << std::endl;
 }
@@ -181,6 +182,7 @@ void ClientProtocol::displayDEAL(uint8_t type,
                                  const std::string& first,
                                  const std::string& hand) {
     if (auto_player) return;
+    std::cout << "DEAL" << std::to_string(type) << first << hand << std::endl;
     std::cout << "New deal " << std::to_string(type) << ": staring place "
               << first << ", your cards: " << getPrettyCards(hand, true) << "."
               << std::endl;
@@ -188,6 +190,7 @@ void ClientProtocol::displayDEAL(uint8_t type,
 
 void ClientProtocol::displayWRONG(uint8_t trick) {
     if (auto_player) return;
+    std::cout << "WRONG" << std::to_string(trick) << std::endl;
     std::cout << "Wrong message received in trick " << std::to_string(trick)
               << "." << std::endl;
 }
@@ -196,17 +199,38 @@ void ClientProtocol::displayTAKEN(uint8_t trick,
                                   const std::string& cardsTaken,
                                   const std::string& takingPlayer) {
     if (auto_player) return;
+    std::cout << "TAKEN" << std::to_string(trick) << cardsTaken << takingPlayer
+              << std::endl;
     std::cout << "A trick " << std::to_string(trick) << " is taken by "
-              << takingPlayer << ", cards " << getPrettyCards(cardsTaken)
-              << "." << std::endl;
+              << takingPlayer << ", cards " << getPrettyCards(cardsTaken) << "."
+              << std::endl;
 }
 
 void ClientProtocol::displaySCORE(
     const std::map<std::string, unsigned int>& scores) {
     if (auto_player) return;
-    std::cout << "The total scores are:" << std::endl;
+    std::cout << "SCORE";
+    for (const auto& [seat, score] : scores) {
+        std::cout << seat << std::to_string(score);
+    }
+    std::cout << std::endl;
+    std::cout << "The scores are:" << std::endl;
     for (const auto& [seat, score] : scores) {
         std::cout << seat << " | " << std::to_string(score) << std::endl;
+    }
+}
+
+void ClientProtocol::displayTOTAL(
+    const std::map<std::string, unsigned int>& totals) {
+    if (auto_player) return;
+    std::cout << "TOTAL";
+    for (const auto& [seat, total] : totals) {
+        std::cout << seat << std::to_string(total);
+    }
+    std::cout << std::endl;
+    std::cout << "The total scores are:" << std::endl;
+    for (const auto& [seat, total] : totals) {
+        std::cout << seat << " | " << std::to_string(total) << std::endl;
     }
 }
 
@@ -214,6 +238,7 @@ void ClientProtocol::displayTRICK(uint8_t trick,
                                   const std::string& cardsOnTable,
                                   const std::string& hand) {
     if (auto_player) return;
+    std::cout << "TRICK" << std::to_string(trick) << cardsOnTable << std::endl;
     std::cout << "Trick: (" << std::to_string(trick) << ") "
               << getPrettyCards(cardsOnTable) << std::endl;
     std::cout << "Available: " << getPrettyCards(hand, true) << std::endl;

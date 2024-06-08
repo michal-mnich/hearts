@@ -65,7 +65,7 @@ void Client::handleServer() {
         protocol.displaySCORE(scores);
     }
     else if (protocol.tryParseTOTAL(message, totals)) {
-        protocol.displaySCORE(totals);
+        protocol.displayTOTAL(totals);
         lastTotal = true;
     }
 }
