@@ -5,22 +5,6 @@
 #include <fstream>
 #include <iostream>
 
-/*
-    nieblokujące wysyłanie przyjmujące mutex jako argument,
-    można czekać na condition_variable z timeoutem
-
-    przedwczesne zakończenie rozdania, gdy punkty zostały rozdane
-
-    przetestować rozłączanie się klientów w różnych scenariuszach,
-    sprawdzić czy 'tricks' 'cards' SCORE i TOTAL są poprawne
-
-    sprawdzić czy są poprawne kody wyjścia serwera (i klienta)
-
-    ulepszyć heurystykę wyboru karty do zagrania w kliencie
-
-    obsługa wyjątków w wątkach (propagowanie wyjątków między threadami?)
-*/
-
 void Server::parseFile(const std::string& filename) {
     std::ifstream file(filename);
     std::string line;
@@ -227,8 +211,8 @@ std::string Server::handleIAM(int fd) {
             dealSuspended = false;
             cvSuspended.notify_all();
         }
-        else if (player_fds.size() == 4) {
-            cvReady.notify_all();
+        if (player_fds.size() == 4) {
+            cvReady.notify_one();
         }
     }
 
