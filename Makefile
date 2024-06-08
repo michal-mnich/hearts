@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -Wall -Wextra -O2 -std=c++20
 CXXFLAGSDEBUG = -DDEBUG -g -Og -Wall -Wextra -Wpedantic -std=c++20 -fsanitize=address
-DEBUG = 1
+DEBUG = 0
 
 ifeq ($(DEBUG), 1)
     CXXFLAGS := $(CXXFLAGSDEBUG)
@@ -42,4 +42,4 @@ server.o: server.cpp server.hpp arg_parser.hpp common.hpp game.hpp \
  network_server.hpp protocol_server.hpp error.hpp network_common.hpp
 
 clean:
-	rm -f kierki-klient kierki-serwer *.o *.log
+	rm -f kierki-klient kierki-serwer *.o
