@@ -12,10 +12,10 @@ endif
 all: kierki-klient kierki-serwer
 
 kierki-klient: kierki-klient.o arg_parser.o client.o network_client.o network_common.o error.o protocol_client.o common.o game.o
-	$(CXX) $(CXXFLAGS) -lboost_program_options -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^ -lboost_program_options
 
 kierki-serwer: kierki-serwer.o arg_parser.o server.o network_server.o network_common.o error.o protocol_server.o common.o game.o
-	$(CXX) $(CXXFLAGS) -lboost_program_options -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^ -lboost_program_options
 
 # generated with g++ -MM *.cpp
 arg_parser.o: arg_parser.cpp arg_parser.hpp error.hpp
