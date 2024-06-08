@@ -6,10 +6,6 @@
 #include <iostream>
 #include <poll.h>
 
-/*
-klient jak sie polaczy ponownie to musi sobie usunac z reki to co dostanie z takenów
-*/
-
 Client::Client(ClientConfig& config)
     : networker(config.host, config.port, config.domain),
       protocol(&networker, config.auto_player), seat(config.seat) {}

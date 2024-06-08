@@ -32,10 +32,9 @@ ClientNetworker::ClientNetworker(const std::string& name,
         break; // If we get here, we have successfully connected
     }
 
-    if (p == nullptr)
-        throw Error("failed to resolve " + name + ":" + service);
-
     freeaddrinfo(res);
+
+    if (p == nullptr) throw Error("failed to resolve " + name + ":" + service);
 
     localAddress = getLocalAddress(sock_fd);
     peerAddress = getPeerAddress(sock_fd);
