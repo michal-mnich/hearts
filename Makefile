@@ -7,7 +7,7 @@ ifeq ($(DEBUG), 1)
     CXXFLAGS := $(CXXFLAGSDEBUG)
 endif
 
-.PHONY: all clean
+.PHONY: all clean release
 
 all: kierki-klient kierki-serwer
 
@@ -43,3 +43,7 @@ server.o: server.cpp server.hpp arg_parser.hpp common.hpp game.hpp \
 
 clean:
 	rm -f kierki-klient kierki-serwer *.o
+
+release:
+	make DEBUG=0 clean all
+	tar -czf mm448369.tgz Makefile *.cpp *.hpp
