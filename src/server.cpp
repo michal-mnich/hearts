@@ -1,4 +1,5 @@
 #include "server.hpp"
+#include "common.hpp"
 #include "error.hpp"
 #include "network_common.hpp"
 #include "protocol_server.hpp"

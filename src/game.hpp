@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <map>
-#include <semaphore>
 #include <string>
 #include <vector>
 

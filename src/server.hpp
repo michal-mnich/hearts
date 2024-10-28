@@ -2,7 +2,6 @@
 #define SERVER_H
 
 #include "arg_parser.hpp"
-#include "common.hpp"
 #include "game.hpp"
 #include "network_server.hpp"
 #include "protocol_server.hpp"
